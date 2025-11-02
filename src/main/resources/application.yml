@@ -18,7 +18,12 @@ management:
       probes:
         enabled: true
       show-details: when_authorized
-      
+      group:
+        readiness:
+          include: db,diskSpace
+        liveness:
+          include: ping
+
 logging:
   level:
     root: INFO
