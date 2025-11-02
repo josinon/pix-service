@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: pixwallet
+  profiles:
+    active: local
+
+server:
+  port: 8080
+
+logging:
+  level:
+    root: INFO
+    "[org.springframework.web]": INFO
+    "[org.pix.wallet]": DEBUG

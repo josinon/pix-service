@@ -1,0 +1,25 @@
+receivers:
+  otlp:
+    protocols:
+      http:
+      grpc:
+
+processors:
+  batch: {}
+  # (Opcional) filtros, tail-sampling, attributes, etc.
+
+exporters:
+  otlphttp/tempo:
+    endpoint: http://tempo:4318
+    tls:
+      insecure: true
+
+  logging:
+    loglevel: warn
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp/tempo, logging]

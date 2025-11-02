@@ -1,0 +1,153 @@
+version: "3.9"
+name: pixwallet-stack
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: pixwallet-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-pixwallet}
+      POSTGRES_USER: ${POSTGRES_USER:-pix}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pixpass}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks: [app-net]
+
+  pgadmin:
+    image: dpage/pgadmin4:8
+    container_name: pixwallet-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@example.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+    ports:
+      - "${PGADMIN_PORT:-15432}:80"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [app-net]
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: pixwallet-postgres-exporter
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_NAME: postgresql://${POSTGRES_USER:-pix}:${POSTGRES_PASSWORD:-pixpass}@db:5432/${POSTGRES_DB:-pixwallet}?sslmode=disable
+    ports:
+      - "9187:9187"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [app-net]
+
+  prometheus:
+    image: prom/prometheus:v2.55.0
+    container_name: pixwallet-prometheus
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=15d"
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    networks: [app-net]
+
+  tempo:
+    image: grafana/tempo:latest
+    container_name: pixwallet-tempo
+    restart: unless-stopped
+    command: ["-config.file=/etc/tempo/tempo.yaml"]
+    volumes:
+      - ./docker/tempo/tempo.yaml:/etc/tempo/tempo.yaml:ro
+      - tempo-data:/var/tempo
+    ports:
+      - "3200:3200"     # Tempo HTTP API (opcional/diagnóstico)
+    networks: [app-net]
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: pixwallet-otel-collector
+    restart: unless-stopped
+    command: ["--config=/etc/otelcol/config.yml"]
+    volumes:
+      - ./docker/otel/collector-config.yml:/etc/otelcol/config.yml:ro
+    ports:
+      - "4317:4317"     # OTLP gRPC (se quiser usar)
+      - "4318:4318"     # OTLP HTTP (usaremos este)
+    depends_on:
+      - tempo
+    networks: [app-net]
+
+  grafana:
+    image: grafana/grafana:11.2.2
+    container_name: pixwallet-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_USERS_DEFAULT_THEME: light
+      GF_PATHS_PROVISIONING: /etc/grafana/provisioning
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+      - tempo
+    networks: [app-net]
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pixwallet-app
+    restart: unless-stopped
+    environment:
+      # Datasource
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-pixwallet}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-pix}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-pixpass}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: none
+      SPRING_FLYWAY_ENABLED: "true"
+
+      # Actuator/Metrics
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,prometheus
+      MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED: "true"
+      MANAGEMENT_METRICS_TAGS_APPLICATION: pixwallet
+
+      # Tracing (Micrometer Tracing + OTLP)
+      MANAGEMENT_TRACING_SAMPLING_PROBABILITY: "1.0"
+      MANAGEMENT_OTLP_TRACING_ENDPOINT: http://otel-collector:4318/v1/traces
+
+      # Identificação do serviço no tracing
+      OTEL_SERVICE_NAME: pixwallet
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    networks: [app-net]
+
+volumes:
+  pgdata:
+  prometheus-data:
+  grafana-data:
+  tempo-data:
+
+networks:
+  app-net:
+    driver: bridge
