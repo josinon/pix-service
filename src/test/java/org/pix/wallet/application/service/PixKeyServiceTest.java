@@ -52,4 +52,6 @@ class PixKeyServiceTest {
         assertThrows(DataIntegrityViolationException.class,
                 () -> service.execute(wid, new CreatePixKeyCommand("CPF", "12345678901")));
     }
+
+    
 }

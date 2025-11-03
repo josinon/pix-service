@@ -17,8 +17,4 @@ public class Wallet {
     public WalletStatus status() { return status; }
     public OffsetDateTime createdAt() { return createdAt; }
 
-    public void deactivate() {
-        if (status == WalletStatus.INACTIVE) return;
-        status = WalletStatus.INACTIVE;
-    }
 }

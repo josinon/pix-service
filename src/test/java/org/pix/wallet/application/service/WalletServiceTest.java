@@ -5,9 +5,6 @@ import org.pix.wallet.application.port.out.WalletRepositoryPort;
 import org.pix.wallet.domain.model.Wallet;
 import org.pix.wallet.domain.model.enums.WalletStatus;
 
-import java.util.Optional;
-import java.util.UUID; 
-
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
