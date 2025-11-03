@@ -3,14 +3,14 @@ package org.pix.wallet.infrastructure.persistence.adapter;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.pix.wallet.application.port.out.WalletRepository;
+import org.pix.wallet.application.port.out.WalletRepositoryPort;
 import org.pix.wallet.domain.model.Wallet;
 import org.pix.wallet.infrastructure.persistence.entity.WalletEntity;
 import org.pix.wallet.infrastructure.persistence.repository.WalletJpaRepository;
 import org.springframework.stereotype.Component;
 
 @Component
-public class WalletRepositoryAdapter implements WalletRepository {
+public class WalletRepositoryAdapter implements WalletRepositoryPort {
 
     private final WalletJpaRepository jpa;
 

@@ -6,7 +6,7 @@ import java.util.UUID;
 
 import org.pix.wallet.application.port.in.CreateWalletUseCase;
 import org.pix.wallet.application.port.in.GetBalanceUseCase;
-import org.pix.wallet.application.port.out.WalletRepository;
+import org.pix.wallet.application.port.out.WalletRepositoryPort;
 import org.pix.wallet.domain.model.Wallet;
 import org.pix.wallet.domain.model.enums.WalletStatus;
 import org.springframework.stereotype.Service;
@@ -17,9 +17,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class WalletService implements CreateWalletUseCase, GetBalanceUseCase {
 
-    private final WalletRepository walletRepository;
+    private final WalletRepositoryPort walletRepository;
 
-    public WalletService(WalletRepository walletRepository) {
+    public WalletService(WalletRepositoryPort walletRepository) {
         this.walletRepository = walletRepository;
     }
 

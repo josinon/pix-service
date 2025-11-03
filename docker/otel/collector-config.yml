@@ -5,21 +5,35 @@ receivers:
       grpc:
 
 processors:
-  batch: {}
-  # (Opcional) filtros, tail-sampling, attributes, etc.
+  batch:
+  memory_limiter:
+    check_interval: 2s
+    limit_mib: 400
+    spike_limit_mib: 100
+  resourcedetection:
+    detectors: [env, system]
+    timeout: 2s
+    override: false
 
 exporters:
-  otlphttp/tempo:
-    endpoint: http://tempo:4318
+  debug:            # substitui logging
+    verbosity: detailed
+  otlp:
+    endpoint: tempo:4317
     tls:
       insecure: true
-
-  logging:
-    loglevel: warn
 
 service:
   pipelines:
     traces:
       receivers: [otlp]
+      processors: [memory_limiter, resourcedetection, batch]
+      exporters: [otlp, debug]
+    metrics:
+      receivers: [otlp]
       processors: [batch]
-      exporters: [otlphttp/tempo, logging]
+      exporters: [debug]
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [debug]
