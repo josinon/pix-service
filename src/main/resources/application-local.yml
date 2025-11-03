@@ -1,9 +1,13 @@
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/pixwallet
-    username: postgres
-    password: postgres
+    username: pix
+    password: pixpass
   jpa:
     hibernate:
       ddl-auto: none
     show-sql: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true

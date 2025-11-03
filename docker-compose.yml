@@ -3,7 +3,7 @@ name: pixwallet-stack
 
 services:
   db:
-    image: postgres:16-alpine
+    image: postgres:16.4-alpine
     container_name: pixwallet-db
     restart: unless-stopped
     environment:
