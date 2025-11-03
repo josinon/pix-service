@@ -33,10 +33,7 @@ public class PixKeyService implements CreatePixKeyUseCase {
         String value = normalizeAndGenerate(type, command.value());
 
         validate(type, value);
-        if (pixKeyPort.existsByValue(value)) {
-            throw new IllegalArgumentException("Pix key already exists");
-        }
-
+        
         PixKey key = new PixKey(UUID.randomUUID(), wallet.id(), type, value, PixKeyStatus.ACTIVE, OffsetDateTime.now());
         PixKey saved = pixKeyPort.save(key);
         return new CreatePixKeyResult(saved.id(), saved.type().name(), saved.value(), saved.status().name());

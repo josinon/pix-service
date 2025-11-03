@@ -1,5 +1,6 @@
 package org.pix.wallet.presentation.api;
 
+import java.net.URI;
 import java.util.UUID;
 
 import org.pix.wallet.application.port.in.CreatePixKeyUseCase;
@@ -37,7 +38,9 @@ public class WalletController {
     @PostMapping
     public ResponseEntity<CreateWalletResponse> create() {
         Wallet w = createWallet.create();
-        return ResponseEntity.ok(new CreateWalletResponse(w.id()));
+        return ResponseEntity
+            .created(URI.create("/wallets/"+w.id()))
+            .body(new CreateWalletResponse(w.id()));
     }
 
     @GetMapping("/{id}/balance")
