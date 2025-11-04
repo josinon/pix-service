@@ -6,7 +6,7 @@ import java.util.UUID;
 public interface WebhookInboxRepositoryPort {
     
     /**
-     * Check if webhook event was already processed
+     * Check if webhook event was already processed (idempotency by eventId)
      */
     boolean existsByEventId(String eventId);
     

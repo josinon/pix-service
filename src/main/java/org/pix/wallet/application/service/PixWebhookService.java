@@ -33,7 +33,7 @@ public class PixWebhookService implements ProcessPixWebhookUseCase {
         
         // 2. Check idempotency by eventId - if already processed, return/ignore
         if (webhookInboxRepositoryPort.existsByEventId(command.eventId())) {
-            log.info("Webhook event already processed: {}", command.eventId());
+            log.info("Webhook already processed - eventId: {}", command.eventId());
             return;
         }
         

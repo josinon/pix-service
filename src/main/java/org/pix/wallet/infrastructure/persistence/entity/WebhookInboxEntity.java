@@ -8,8 +8,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "webhook_inbox", indexes = {
-    @Index(name = "ix_webhook_e2e_time", columnList = "end_to_end_id, event_time"),
-    @Index(name = "uq_webhook_inbox_e2e", columnList = "end_to_end_id", unique = true)
+    @Index(name = "ix_webhook_e2e_time", columnList = "end_to_end_id, event_time")
 })
 @Getter
 @Setter
@@ -21,10 +20,10 @@ public class WebhookInboxEntity {
     @Id
     private UUID id;
 
-    @Column(name = "end_to_end_id", nullable = false, unique = true)
+    @Column(name = "end_to_end_id", nullable = false)
     private String endToEndId;
 
-    @Column(name = "event_id", nullable = false)
+    @Column(name = "event_id", nullable = false, unique = true)
     private String eventId;
 
     @Column(name = "event_type", nullable = false)

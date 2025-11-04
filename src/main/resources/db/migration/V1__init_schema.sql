@@ -65,12 +65,10 @@ CREATE INDEX IF NOT EXISTS ix_ledger_wallet ON ledger_entry(wallet_id);
 -- 5) Webhook Inbox table (idempotência de webhooks)
 CREATE TABLE IF NOT EXISTS webhook_inbox (
   id             UUID PRIMARY KEY,
-  end_to_end_id  TEXT NOT NULL UNIQUE,
-  event_id       TEXT NOT NULL,
+  end_to_end_id  TEXT NOT NULL,
+  event_id       TEXT NOT NULL UNIQUE,  -- idempotency by event_id
   event_type     TEXT NOT NULL, -- CONFIRMED/REJECTED
   event_time     TIMESTAMPTZ NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS ix_webhook_e2e_time ON webhook_inbox(end_to_end_id, event_time DESC);
-CREATE UNIQUE INDEX IF NOT EXISTS uq_webhook_event_id ON webhook_inbox(event_id) 
-  WHERE event_id IS NOT NULL;
