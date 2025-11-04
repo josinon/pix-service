@@ -8,7 +8,7 @@ import org.pix.wallet.application.port.out.WalletRepositoryPort;
 import org.pix.wallet.domain.model.Wallet;
 import org.pix.wallet.domain.model.enums.WalletStatus;
 
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -28,7 +28,7 @@ class PixKeyServiceValidationTest {
                 .thenReturn(Optional.of(Wallet.builder()
                         .id(walletId)
                         .status(WalletStatus.ACTIVE)
-                        .createdAt(OffsetDateTime.now())
+                        .createdAt(Instant.now())
                         .build()));
         when(pixPort.save(any())).thenAnswer(inv -> inv.getArgument(0));
     }

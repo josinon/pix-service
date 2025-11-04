@@ -1,7 +1,7 @@
 package org.pix.wallet.application.service;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 import org.pix.wallet.application.port.in.CreateWalletUseCase;
@@ -28,7 +28,7 @@ public class WalletService implements CreateWalletUseCase, GetBalanceUseCase {
         Wallet wallet = Wallet.builder()
         .id(UUID.randomUUID())
         .status(WalletStatus.ACTIVE)
-        .createdAt(OffsetDateTime.now())
+        .createdAt(Instant.now())
         .build();
         return walletRepository.save(wallet);
     }

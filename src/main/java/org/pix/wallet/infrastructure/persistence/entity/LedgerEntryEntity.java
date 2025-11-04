@@ -2,6 +2,8 @@ package org.pix.wallet.infrastructure.persistence.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -20,8 +22,7 @@ import org.pix.wallet.domain.model.enums.OperationType;
 public class LedgerEntryEntity {
 
   @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id; // BIGSERIAL
+  private UUID id;
 
   @ManyToOne(optional = false, fetch = FetchType.LAZY)
   @JoinColumn(name = "wallet_id", nullable = false)
@@ -35,8 +36,8 @@ public class LedgerEntryEntity {
   @Column(name = "operation_type", nullable = false, length = 24)
   private OperationType operationType;
 
-  @Column(name = "amount_cents", nullable = false)
-  private long amountCents; // positivo = crédito; negativo = débito
+  @Column(name = "amount", nullable = false)
+  private BigDecimal amount; // positivo = crédito; negativo = débito
 
   @Column(nullable = false)
   private boolean available = true;
@@ -47,9 +48,9 @@ public class LedgerEntryEntity {
   @Column(nullable = false)
   private Instant createdAt;
 
-  // para idempotência (depósito/saque não-PIX)
-  @Column(name = "request_id")
-  private UUID requestId;
+  // para idempotência
+  @Column(name = "idempotency_key")
+  private String idempotencyKey;
 
   @PrePersist
   void prePersist() {

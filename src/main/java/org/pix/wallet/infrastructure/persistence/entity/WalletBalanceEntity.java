@@ -2,6 +2,8 @@ package org.pix.wallet.infrastructure.persistence.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -19,8 +21,8 @@ public class WalletBalanceEntity {
   @JoinColumn(name = "wallet_id")
   private WalletEntity wallet;
 
-  @Column(name = "balance_cents", nullable = false)
-  private long balanceCents;
+  @Column(name = "balance", nullable = false)
+  private BigDecimal balance;
 
   @Column(nullable = false)
   private Instant updatedAt;

@@ -7,7 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 import org.pix.wallet.domain.model.enums.WalletStatus;
@@ -24,7 +24,7 @@ public class WalletEntity {
   private WalletStatus status = WalletStatus.ACTIVE;
 
   @Column(name = "created_at", nullable = false)
-  private OffsetDateTime createdAt = OffsetDateTime.now();
+  private Instant createdAt = Instant.now();
 
   @Version
   private Integer version;

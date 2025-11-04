@@ -2,6 +2,7 @@ package org.pix.wallet.presentation.api;
 
 import org.junit.jupiter.api.Test;
 import org.pix.wallet.application.port.in.CreateWalletUseCase;
+import org.pix.wallet.application.port.in.DepositFundsUseCase;
 import org.pix.wallet.application.port.in.GetBalanceUseCase;
 import org.pix.wallet.application.port.in.CreatePixKeyUseCase;
 import org.pix.wallet.domain.model.Wallet;
@@ -11,7 +12,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -29,6 +30,7 @@ class WalletControllerTest {
     @MockitoBean CreateWalletUseCase createWallet;
     @MockitoBean GetBalanceUseCase getBalance;
     @MockitoBean CreatePixKeyUseCase createPixKeyUseCase;
+    @MockitoBean DepositFundsUseCase depositFunds;
 
     @Test
     void createWalletReturns201AndId() throws Exception {
@@ -36,7 +38,7 @@ class WalletControllerTest {
         when(createWallet.create()).thenReturn(Wallet.builder()
                 .id(id)
                 .status(WalletStatus.ACTIVE)
-                .createdAt(OffsetDateTime.now())
+                .createdAt(Instant.now())
                 .build());
 
         mvc.perform(post("/wallets"))

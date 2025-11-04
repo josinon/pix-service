@@ -8,6 +8,7 @@ import org.pix.wallet.domain.model.Wallet;
 import org.pix.wallet.domain.model.enums.WalletStatus;
 import org.springframework.dao.DataIntegrityViolationException;
 
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.UUID;
@@ -28,7 +29,7 @@ class PixKeyServiceTest {
         when(walletPort.findById(wid)).thenReturn(Optional.of( Wallet.builder()
                 .id(wid)
                 .status(WalletStatus.ACTIVE)
-                .createdAt(OffsetDateTime.now())
+                .createdAt(Instant.now())
                 .build()));
   
         when(pixPort.save(any())).thenAnswer(a -> a.getArgument(0));
@@ -45,7 +46,7 @@ class PixKeyServiceTest {
         when(walletPort.findById(wid)).thenReturn(Optional.of(Wallet.builder()
                 .id(wid)
                 .status(WalletStatus.ACTIVE)
-                .createdAt(OffsetDateTime.now())
+                .createdAt(Instant.now())
                 .build()));
         when(pixPort.save(any())).thenThrow(new DataIntegrityViolationException("duplicate key"));
 

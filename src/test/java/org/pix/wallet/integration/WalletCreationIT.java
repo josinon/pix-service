@@ -6,13 +6,14 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.*;
+import org.pix.wallet.config.IntegrationTest;
 import org.pix.wallet.infrastructure.persistence.repository.WalletJpaRepository;
 
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@IntegrationTest
 class WalletCreationIT {
 
     @LocalServerPort

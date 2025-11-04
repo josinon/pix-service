@@ -1,6 +1,7 @@
 package org.pix.wallet.integration;
 
 import org.junit.jupiter.api.Test;
+import org.pix.wallet.config.IntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -10,7 +11,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@IntegrationTest
 class WalletConcurrentIT {
 
     @LocalServerPort int port;
