@@ -2,8 +2,9 @@ package org.pix.wallet.presentation.api;
 
 import org.junit.jupiter.api.Test;
 import org.pix.wallet.application.port.in.CreateWalletUseCase;
-import org.pix.wallet.application.port.in.DepositFundsUseCase;
+import org.pix.wallet.application.port.in.DepositUseCase;
 import org.pix.wallet.application.port.in.GetBalanceUseCase;
+import org.pix.wallet.application.port.in.WithdrawUseCase;
 import org.pix.wallet.application.port.in.CreatePixKeyUseCase;
 import org.pix.wallet.domain.model.Wallet;
 import org.pix.wallet.domain.model.enums.WalletStatus;
@@ -30,7 +31,8 @@ class WalletControllerTest {
     @MockitoBean CreateWalletUseCase createWallet;
     @MockitoBean GetBalanceUseCase getBalance;
     @MockitoBean CreatePixKeyUseCase createPixKeyUseCase;
-    @MockitoBean DepositFundsUseCase depositFunds;
+    @MockitoBean DepositUseCase depositFunds;
+    @MockitoBean WithdrawUseCase withdrawFunds;
 
     @Test
     void createWalletReturns201AndId() throws Exception {

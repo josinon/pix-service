@@ -1,19 +1,18 @@
 package org.pix.wallet.application.service;
 
-
-import org.pix.wallet.application.port.in.DepositUseCase;
+import org.pix.wallet.application.port.in.WithdrawUseCase;
 import org.pix.wallet.application.port.out.LedgerEntryRepositoryPort;
 import org.pix.wallet.application.port.out.WalletRepositoryPort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-public class DepositService implements DepositUseCase {
+public class WithdrawService implements WithdrawUseCase {
 
-    private final WalletRepositoryPort walletPort;
+  private final WalletRepositoryPort walletPort;
     private final LedgerEntryRepositoryPort ledgerPort;
 
-    public DepositService(WalletRepositoryPort walletPort,
+    public WithdrawService(WalletRepositoryPort walletPort,
                           LedgerEntryRepositoryPort ledgerPort) {
         this.walletPort = walletPort;
         this.ledgerPort = ledgerPort;
@@ -34,8 +33,9 @@ public class DepositService implements DepositUseCase {
             return new Result(wallet.id(), command.idempotencyKey());
         }
 
-        ledgerPort.deposit(wallet.id(), command.amount(), command.idempotencyKey());
+        ledgerPort.withdraw(wallet.id(), command.amount(), command.idempotencyKey());
 
         return new Result(wallet.id(), command.idempotencyKey());
     }
+  
 }

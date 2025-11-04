@@ -1,9 +1,8 @@
 package org.pix.wallet.application.service;
 
 import org.junit.jupiter.api.Test;
-import org.pix.wallet.application.port.in.DepositFundsUseCase;
+import org.pix.wallet.application.port.in.DepositUseCase;
 import org.pix.wallet.application.port.out.LedgerEntryRepositoryPort;
-import org.pix.wallet.application.port.out.WalletBalanceRepositoryPort;
 import org.pix.wallet.application.port.out.WalletRepositoryPort;
 import org.pix.wallet.domain.model.Wallet;
 import org.pix.wallet.domain.model.enums.WalletStatus;
@@ -19,9 +18,8 @@ import static org.mockito.Mockito.*;
 class DepositServiceTest {
 
     WalletRepositoryPort walletPort = mock(WalletRepositoryPort.class);
-    WalletBalanceRepositoryPort balancePort = mock(WalletBalanceRepositoryPort.class);
     LedgerEntryRepositoryPort ledgerPort = mock(LedgerEntryRepositoryPort.class);
-    DepositService service = new DepositService(walletPort, balancePort, ledgerPort);
+    DepositService service = new DepositService(walletPort, ledgerPort);
 
     UUID wid = UUID.randomUUID();
 
@@ -31,48 +29,47 @@ class DepositServiceTest {
 
     @Test
     void depositSuccess() {
+        var idempotenceKey = "k1";
         when(walletPort.findById(wid)).thenReturn(Optional.of(wallet()));
-        when(ledgerPort.existsByIdempotencyKey("k1")).thenReturn(false);
-        when(balancePort.findCurrentBalance(wid)).thenReturn(Optional.of(BigDecimal.ZERO));
-        when(ledgerPort.appendDeposit(eq(wid), any(), eq("k1"))).thenReturn(UUID.randomUUID());
-        when(balancePort.incrementBalance(wid, new BigDecimal("25.00"))).thenReturn(new BigDecimal("25.00"));
+        when(ledgerPort.existsByIdempotencyKey(idempotenceKey)).thenReturn(false);
+        when(ledgerPort.getCurrentBalance(wid)).thenReturn(Optional.of(BigDecimal.ZERO));
+        when(ledgerPort.deposit(eq(wid), eq(new BigDecimal("25.00")), eq(idempotenceKey))).thenReturn(UUID.randomUUID());
 
-        var r = service.execute(new DepositFundsUseCase.Command(wid, new BigDecimal("25.00"), "k1"));
-        assertEquals(new BigDecimal("0"), r.previousBalance());
-        assertEquals(new BigDecimal("25.00"), r.amount());
-        assertEquals(new BigDecimal("25.00"), r.newBalance());
+        var r = service.execute(new DepositUseCase.Command(wid, new BigDecimal("25.00"), idempotenceKey));
+        assertEquals(wid, r.walletId());
+        assertEquals(idempotenceKey, r.idempotencyKey());
     }
 
     @Test
     void depositIdempotentReplay() {
+        var idempotenceKey = "k1";
         when(walletPort.findById(wid)).thenReturn(Optional.of(wallet()));
-        when(ledgerPort.existsByIdempotencyKey("k1")).thenReturn(true);
-        when(balancePort.findCurrentBalance(wid)).thenReturn(Optional.of(new BigDecimal("100.00")));
+        when(ledgerPort.existsByIdempotencyKey(idempotenceKey)).thenReturn(true);
+        when(ledgerPort.getCurrentBalance(wid)).thenReturn(Optional.of(new BigDecimal("100.00")));
 
-        var r = service.execute(new DepositFundsUseCase.Command(wid, new BigDecimal("25.00"), "k1"));
-        assertEquals(new BigDecimal("100.00"), r.previousBalance());
-        assertEquals(BigDecimal.ZERO, r.amount());
-        assertEquals(new BigDecimal("100.00"), r.newBalance());
+        var r = service.execute(new DepositUseCase.Command(wid, new BigDecimal("25.00"), idempotenceKey));
+        assertEquals(wid, r.walletId());
+        assertEquals(idempotenceKey, r.idempotencyKey());
     }
 
     @Test
     void walletNotFound() {
         when(walletPort.findById(wid)).thenReturn(Optional.empty());
         assertThrows(IllegalArgumentException.class,
-                () -> service.execute(new DepositFundsUseCase.Command(wid, new BigDecimal("10"), "k1")));
+                () -> service.execute(new DepositUseCase.Command(wid, new BigDecimal("10"), "k1")));
     }
 
     @Test
     void amountInvalidZero() {
         when(walletPort.findById(wid)).thenReturn(Optional.of(wallet()));
         assertThrows(IllegalArgumentException.class,
-                () -> service.execute(new DepositFundsUseCase.Command(wid, new BigDecimal("0"), "k1")));
+                () -> service.execute(new DepositUseCase.Command(wid, new BigDecimal("0"), "k1")));
     }
 
     @Test
     void missingIdempotencyKey() {
         when(walletPort.findById(wid)).thenReturn(Optional.of(wallet()));
         assertThrows(IllegalArgumentException.class,
-                () -> service.execute(new DepositFundsUseCase.Command(wid, new BigDecimal("10"), "")));
+                () -> service.execute(new DepositUseCase.Command(wid, new BigDecimal("10"), "")));
     }
 }

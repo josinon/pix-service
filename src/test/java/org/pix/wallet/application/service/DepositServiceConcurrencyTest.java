@@ -1,54 +1,126 @@
 package org.pix.wallet.application.service;
 
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.pix.wallet.application.port.in.DepositFundsUseCase;
+import org.pix.wallet.application.port.in.DepositUseCase;
 import org.pix.wallet.application.port.out.LedgerEntryRepositoryPort;
-import org.pix.wallet.application.port.out.WalletBalanceRepositoryPort;
 import org.pix.wallet.application.port.out.WalletRepositoryPort;
 import org.pix.wallet.domain.model.Wallet;
 import org.pix.wallet.domain.model.enums.WalletStatus;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
-import static org.junit.jupiter.api.Assertions.*;
 
+@DisplayName("DepositService Concurrency Tests")
 class DepositServiceConcurrencyTest {
 
     WalletRepositoryPort walletPort = mock(WalletRepositoryPort.class);
-    WalletBalanceRepositoryPort balancePort = mock(WalletBalanceRepositoryPort.class);
     LedgerEntryRepositoryPort ledgerPort = mock(LedgerEntryRepositoryPort.class);
-    DepositService service = new DepositService(walletPort, balancePort, ledgerPort);
+    DepositService service = new DepositService(walletPort, ledgerPort);
+
+    private UUID walletId;
+    private Wallet wallet;
+
+    @BeforeEach
+    void setUp() {
+        walletId = UUID.randomUUID();
+        wallet = Wallet.builder()
+                .id(walletId)
+                .status(WalletStatus.ACTIVE)
+                .createdAt(Instant.now())
+                .build();
+    }
 
     @Test
-    void concurrentDifferentIdempotencyKeys() throws Exception {
-        UUID wid = UUID.randomUUID();
-        when(walletPort.findById(wid)).thenReturn(Optional.of(Wallet.builder().id(wid).status(WalletStatus.ACTIVE).createdAt(Instant.now()).build()));
-        when(balancePort.findCurrentBalance(wid))
-                .thenReturn(Optional.of(BigDecimal.ZERO)) // primeira leitura
-                .thenReturn(Optional.of(new BigDecimal("10"))) // segunda
-                .thenReturn(Optional.of(new BigDecimal("20"))); // terceira
-        when(ledgerPort.existsByIdempotencyKey(any())).thenReturn(false);
-        when(ledgerPort.appendDeposit(eq(wid), any(), any())).thenReturn(UUID.randomUUID());
-        when(balancePort.incrementBalance(eq(wid), eq(new BigDecimal("10"))))
-                .thenReturn(new BigDecimal("10"), new BigDecimal("20"), new BigDecimal("30"));
+    @DisplayName("Should process deposit only once when multiple threads use same idempotency key")
+    void shouldProcessDepositOnlyOnceWithSameIdempotencyKey() throws InterruptedException, ExecutionException {
+        // Arrange
+        String idempotencyKey = "idp-" + UUID.randomUUID();
+        BigDecimal amount = new BigDecimal("100.00");
+        int threadCount = 10;
+        
+        AtomicInteger depositCallCount = new AtomicInteger(0);
 
-        ExecutorService pool = Executors.newFixedThreadPool(3);
-        Callable<BigDecimal> task = () -> service.execute(new DepositFundsUseCase.Command(
-                wid, new BigDecimal("10"), UUID.randomUUID().toString())).newBalance();
-        var futures = pool.invokeAll(
-                java.util.List.of(task, task, task));
-        pool.shutdown();
-        var balances = new java.util.HashSet<BigDecimal>();
-        for (var f : futures) balances.add(f.get());
-        assertTrue(balances.contains(new BigDecimal("10")));
-        assertTrue(balances.contains(new BigDecimal("20")));
-        assertTrue(balances.contains(new BigDecimal("30")));
+        when(walletPort.findById(walletId)).thenReturn(Optional.of(wallet));
+        when(ledgerPort.existsByIdempotencyKey(idempotencyKey))
+            .thenReturn(false)  // primeira chamada
+            .thenReturn(true);  // demais chamadas
+
+        doAnswer(invocation -> {
+            depositCallCount.incrementAndGet();
+            return null;
+        }).when(ledgerPort).deposit(eq(walletId), eq(amount), eq(idempotencyKey));
+
+        // Act
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch latch = new CountDownLatch(1);
+        List<Future<DepositUseCase.Result>> futures = new ArrayList<>();
+
+        for (int i = 0; i < threadCount; i++) {
+            futures.add(executor.submit(() -> {
+                latch.await(); // todas esperam
+                var command = new DepositUseCase.Command(walletId, amount, idempotencyKey);
+                return service.execute(command);
+            }));
+        }
+
+        latch.countDown(); // libera todas de uma vez
+        executor.shutdown();
+        executor.awaitTermination(10, TimeUnit.SECONDS);
+
+        // Assert
+        for (Future<DepositUseCase.Result> future : futures) {
+            assertThat(future.get().walletId()).isEqualTo(walletId);
+        }
+
+        // Apenas 1 depósito persistido
+        assertThat(depositCallCount.get()).isEqualTo(1);
+        verify(ledgerPort, times(1)).deposit(walletId, amount, idempotencyKey);
+    }
+
+    @Test
+    @DisplayName("Should process all deposits when using different idempotency keys")
+    void shouldProcessAllDepositsWithDifferentIdempotencyKeys() throws InterruptedException, ExecutionException {
+        // Arrange
+        BigDecimal amount = new BigDecimal("50.00");
+        int threadCount = 5;
+        
+        when(walletPort.findById(walletId)).thenReturn(Optional.of(wallet));
+        when(ledgerPort.existsByIdempotencyKey(any())).thenReturn(false);
+
+        // Act
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch latch = new CountDownLatch(1);
+        List<Future<DepositUseCase.Result>> futures = new ArrayList<>();
+
+        for (int i = 0; i < threadCount; i++) {
+            String uniqueKey = "idp-" + i;
+            futures.add(executor.submit(() -> {
+                latch.await();
+                var command = new DepositUseCase.Command(walletId, amount, uniqueKey);
+                return service.execute(command);
+            }));
+        }
+
+        latch.countDown();
+        executor.shutdown();
+        executor.awaitTermination(10, TimeUnit.SECONDS);
+
+        // Assert
+        for (Future<DepositUseCase.Result> future : futures) {
+            assertThat(future.get().walletId()).isEqualTo(walletId);
+        }
+
+        // Todos os 5 depósitos persistidos
+        verify(ledgerPort, times(threadCount)).deposit(eq(walletId), eq(amount), any());
     }
 }

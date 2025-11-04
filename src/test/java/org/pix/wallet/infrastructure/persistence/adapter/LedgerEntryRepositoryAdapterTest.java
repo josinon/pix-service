@@ -52,7 +52,7 @@ class LedgerEntryRepositoryAdapterTest {
 
         var adapter = new LedgerEntryRepositoryAdapter(ledgerJpa, walletJpa);
         String key = "idem-1";
-        adapter.appendDeposit(wid, new BigDecimal("10.00"), key);
+        adapter.deposit(wid, new BigDecimal("10.00"), key);
         ledgerJpa.flush();
         assertTrue(adapter.existsByIdempotencyKey(key));
         assertFalse(adapter.existsByIdempotencyKey("other"));

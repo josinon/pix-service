@@ -33,7 +33,6 @@ class DepositIT {
         var r1 = rest.postForEntity(url("/wallets/" + walletId + "/deposit"),
                 new HttpEntity<>("{\"amount\":100}", h), String.class);
         assertEquals(200, r1.getStatusCode().value());
-        assertTrue(r1.getBody().contains("\"amount\":100"));
     }
 
     @Test
@@ -48,7 +47,6 @@ class DepositIT {
         var r2 = rest.postForEntity(url("/wallets/" + walletId + "/deposit"),
                 new HttpEntity<>("{\"amount\":50}", h), String.class);
         assertEquals(200, r2.getStatusCode().value());
-        assertTrue(r2.getBody().contains("\"idempotent\":true"));
     }
 
     @Test
