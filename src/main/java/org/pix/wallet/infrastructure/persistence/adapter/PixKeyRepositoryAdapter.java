@@ -39,4 +39,17 @@ public class PixKeyRepositoryAdapter implements PixKeyRepositoryPort {
     public boolean existsByValue(String value) {
         return pixKeyJpa.existsByValue(value);
     }
+
+    @Override
+    public Optional<PixKey> findByValueAndActive(String value) {
+        return pixKeyJpa.findByValueAndStatus(value, org.pix.wallet.domain.model.enums.PixKeyStatus.ACTIVE)
+            .map(entity -> new PixKey(
+                entity.getId(),
+                entity.getWallet().getId(),
+                entity.getType(),
+                entity.getValue(),
+                entity.getStatus(),
+                entity.getCreatedAt()
+            ));
+    }
 }
