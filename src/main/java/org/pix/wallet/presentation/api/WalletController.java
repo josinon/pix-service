@@ -30,9 +30,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import io.swagger.v3.oas.annotations.Parameter;
 import jakarta.validation.Valid;
-import jakarta.websocket.server.PathParam;
+import lombok.extern.slf4j.Slf4j;
 
 
+@Slf4j
 @RestController
 @RequestMapping("/wallets")
 public class WalletController {
@@ -83,10 +84,11 @@ public class WalletController {
     @PostMapping("/{id}/deposit")
     public ResponseEntity<DepositResponse> deposit(
             @PathVariable UUID id,
-            @RequestHeader("Idempotency-Key") String key,
+            @RequestHeader(value = "Idempotency-Key", required = true) String key,
             @Valid @RequestBody DepositRequest body) {
         
-        System.out.println("Deposit called with id=" + id + ", key=" + key + ", amount=" + body.amount());
+        log.info("Deposit called - walletId: {}, key: {}, amount: {}", id, key, body.amount());
+        
         var r = depositUseCase.execute(new DepositUseCase.Command(id, body.amount(), key));
         return ResponseEntity.ok(new DepositResponse(r.walletId(), r.idempotencyKey()));
     }
@@ -94,7 +96,7 @@ public class WalletController {
     @PostMapping("/{id}/withdraw")
     public ResponseEntity<?> withdraw(
             @PathVariable UUID id,
-            @RequestHeader("Idempotency-Key") String key,
+            @RequestHeader(value = "Idempotency-Key", required = true) String key,
             @Valid @RequestBody WithdrawRequest body) {
         var r = withdrawUseCase.execute(new WithdrawUseCase.Command(id, body.amount(), key));
         return ResponseEntity.ok(new WithdrawResponse(r.walletId(), r.idempotencyKey()));

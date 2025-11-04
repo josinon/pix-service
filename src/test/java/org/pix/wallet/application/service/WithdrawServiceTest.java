@@ -3,16 +3,14 @@ package org.pix.wallet.application.service;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.pix.wallet.application.port.in.WithdrawUseCase;
 import org.pix.wallet.application.port.out.LedgerEntryRepositoryPort;
 import org.pix.wallet.application.port.out.WalletRepositoryPort;
 import org.pix.wallet.domain.model.Wallet;
+import org.pix.wallet.domain.model.enums.WalletStatus;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -22,18 +20,13 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
 @DisplayName("WithdrawService Unit Tests")
 class WithdrawServiceTest {
 
-    @Mock
-    private WalletRepositoryPort walletPort;
-
-    @Mock
-    private LedgerEntryRepositoryPort ledgerPort;
-
-    @InjectMocks
-    private WithdrawService withdrawService;
+    private WalletRepositoryPort walletPort = mock(WalletRepositoryPort.class);
+    private LedgerEntryRepositoryPort ledgerPort = mock(LedgerEntryRepositoryPort.class);
+    private WalletOperationValidator validator = new WalletOperationValidator(walletPort);
+    private WithdrawService withdrawService = new WithdrawService(validator, ledgerPort);
 
     private UUID walletId;
     private Wallet wallet;
@@ -44,6 +37,8 @@ class WithdrawServiceTest {
         walletId = UUID.randomUUID();
         wallet = Wallet.builder()
                 .id(walletId)
+                .status(WalletStatus.ACTIVE)
+                .createdAt(Instant.now())
                 .build();
         idempotencyKey = "idp-" + UUID.randomUUID();
     }
@@ -176,7 +171,7 @@ class WithdrawServiceTest {
         // Act & Assert
         assertThatThrownBy(() -> withdrawService.execute(command))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Wallet not found");
+                .hasMessageContaining("Wallet not found");
 
         verify(walletPort).findById(walletId);
         verify(ledgerPort, never()).existsByIdempotencyKey(any());

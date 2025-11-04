@@ -19,7 +19,8 @@ class DepositServiceTest {
 
     WalletRepositoryPort walletPort = mock(WalletRepositoryPort.class);
     LedgerEntryRepositoryPort ledgerPort = mock(LedgerEntryRepositoryPort.class);
-    DepositService service = new DepositService(walletPort, ledgerPort);
+    WalletOperationValidator validator = new WalletOperationValidator(walletPort);
+    DepositService service = new DepositService(validator, ledgerPort);
 
     UUID wid = UUID.randomUUID();
 

@@ -42,11 +42,24 @@ public class PixTransferService implements ProcessPixTransferUseCase {
             return new Result(existingTransfer.endToEndId(), existingTransfer.status());
         }
         
-        // 3. Validate source wallet exists
-        walletRepositoryPort.findById(UUID.fromString(command.fromWalletId()))
+        // 3. Validate source wallet exists and is active
+        var sourceWallet = walletRepositoryPort.findById(UUID.fromString(command.fromWalletId()))
             .orElseThrow(() -> new IllegalArgumentException("Source wallet not found: " + command.fromWalletId()));
         
-        // 4. Validate source wallet has sufficient balance
+        // 4. Resolve PIX key to destination wallet
+        PixKey pixKey = pixKeyRepositoryPort.findByValueAndActive(command.toPixKey())
+            .orElseThrow(() -> new IllegalArgumentException("PIX key not found or inactive: " + command.toPixKey()));
+        
+        // 5. Validate destination wallet exists
+        var destinationWallet = walletRepositoryPort.findById(pixKey.walletId())
+            .orElseThrow(() -> new IllegalArgumentException("Destination wallet not found for PIX key: " + command.toPixKey()));
+        
+        // 6. Validate not transferring to the same wallet
+        if (sourceWallet.id().equals(destinationWallet.id())) {
+            throw new IllegalArgumentException("Cannot transfer to the same wallet");
+        }
+        
+        // 7. Validate source wallet has sufficient balance
         BigDecimal currentBalance = ledgerEntryRepositoryPort.getCurrentBalance(command.fromWalletId())
             .orElse(BigDecimal.ZERO);
         
@@ -54,7 +67,6 @@ public class PixTransferService implements ProcessPixTransferUseCase {
             throw new IllegalArgumentException("Insufficient balance. Available: " + currentBalance + ", Required: " + command.amount());
         }
         
-
         // 8. Generate unique endToEndId (E + 32 chars)
         String endToEndId = generateEndToEndId();
         
@@ -62,7 +74,7 @@ public class PixTransferService implements ProcessPixTransferUseCase {
         var transferCommand = new TransferRepositoryPort.TransferCommand(
             endToEndId,
             command.fromWalletId(),
-            command.toPixKey(),
+            destinationWallet.id().toString(),
             command.amount(),
             "BRL",
             "PENDING",

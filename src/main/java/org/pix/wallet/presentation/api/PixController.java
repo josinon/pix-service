@@ -23,15 +23,11 @@ public class PixController {
 
     @PostMapping("/transfers")
     public ResponseEntity<PixTransferResponse> createTransfer(
-            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @RequestHeader(value = "Idempotency-Key", required = true) String idempotencyKey,
             @Valid @RequestBody PixTransferRequest request) {
         
         log.info("Creating PIX transfer from wallet {} to PIX key {} with idempotency key {}", 
                  request.getFromWalletId(), request.getToPixKey(), idempotencyKey);
-        
-        if (idempotencyKey == null || idempotencyKey.isBlank()) {
-            throw new IllegalArgumentException("Idempotency-Key header is required");
-        }
         
         var command = new ProcessPixTransferUseCase.Command(
             request.getFromWalletId().toString(),

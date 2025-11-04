@@ -4,21 +4,17 @@ import lombok.RequiredArgsConstructor;
 import org.pix.wallet.application.port.out.TransferRepositoryPort;
 import org.pix.wallet.domain.model.enums.TransferStatus;
 import org.pix.wallet.infrastructure.persistence.entity.TransferEntity;
-import org.pix.wallet.infrastructure.persistence.entity.WalletEntity;
 import org.pix.wallet.infrastructure.persistence.repository.TransferJpaRepository;
-import org.pix.wallet.infrastructure.persistence.repository.WalletJpaRepository;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.util.Optional;
-import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
 public class TransferRepositoryAdapter implements TransferRepositoryPort {
 
     private final TransferJpaRepository transferJpaRepository;
-    private final WalletJpaRepository walletJpaRepository;
 
     @Override
     public boolean existsByIdempotencyKey(String idempotencyKey) {
@@ -38,9 +34,6 @@ public class TransferRepositoryAdapter implements TransferRepositoryPort {
 
     @Override
     public TransferResult save(TransferCommand command) {
-        walletJpaRepository.findById(UUID.fromString(command.fromWalletId()))
-            .orElseThrow(() -> new IllegalArgumentException("From wallet not found: " + command.fromWalletId()));
-
         TransferEntity entity = TransferEntity.builder()
             .endToEndId(command.endToEndId())
             .idempotencyKey(command.idempotencyKey())

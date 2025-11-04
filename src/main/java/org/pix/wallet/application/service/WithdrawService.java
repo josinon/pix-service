@@ -2,37 +2,37 @@ package org.pix.wallet.application.service;
 
 import org.pix.wallet.application.port.in.WithdrawUseCase;
 import org.pix.wallet.application.port.out.LedgerEntryRepositoryPort;
-import org.pix.wallet.application.port.out.WalletRepositoryPort;
+import org.pix.wallet.domain.model.Wallet;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class WithdrawService implements WithdrawUseCase {
 
-  private final WalletRepositoryPort walletPort;
+    private final WalletOperationValidator validator;
     private final LedgerEntryRepositoryPort ledgerPort;
 
-    public WithdrawService(WalletRepositoryPort walletPort,
+    public WithdrawService(WalletOperationValidator validator,
                           LedgerEntryRepositoryPort ledgerPort) {
-        this.walletPort = walletPort;
+        this.validator = validator;
         this.ledgerPort = ledgerPort;
     }
 
    @Override
     @Transactional
     public Result execute(Command command) {
-        if (command.amount() == null || command.amount().signum() <= 0)
-            throw new IllegalArgumentException("Amount must be > 0");
-        if (command.idempotencyKey() == null || command.idempotencyKey().isBlank())
-            throw new IllegalArgumentException("Idempotency-Key required");
+        // Validations using centralized validator
+        validator.validateAmount(command.amount());
+        validator.validateIdempotencyKey(command.idempotencyKey());
+        
+        Wallet wallet = validator.validateAndGetActiveWallet(command.walletId());
 
-        var wallet = walletPort.findById(command.walletId())
-                .orElseThrow(() -> new IllegalArgumentException("Wallet not found"));
-
+        // Check idempotency
         if (ledgerPort.existsByIdempotencyKey(command.idempotencyKey())) {
             return new Result(wallet.id(), command.idempotencyKey());
         }
 
+        // Execute withdraw
         ledgerPort.withdraw(wallet.id().toString(), command.amount(), command.idempotencyKey());
 
         return new Result(wallet.id(), command.idempotencyKey());

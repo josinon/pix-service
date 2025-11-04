@@ -6,6 +6,7 @@ import org.pix.wallet.application.port.in.DepositUseCase;
 import org.pix.wallet.application.port.in.GetBalanceUseCase;
 import org.pix.wallet.application.port.in.WithdrawUseCase;
 import org.pix.wallet.application.port.in.CreatePixKeyUseCase;
+import org.pix.wallet.application.service.WalletOperationValidator;
 import org.pix.wallet.domain.model.Wallet;
 import org.pix.wallet.domain.model.enums.WalletStatus;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -33,6 +34,7 @@ class WalletControllerTest {
     @MockitoBean CreatePixKeyUseCase createPixKeyUseCase;
     @MockitoBean DepositUseCase depositFunds;
     @MockitoBean WithdrawUseCase withdrawFunds;
+    @MockitoBean WalletOperationValidator walletOperationValidator;
 
     @Test
     void createWalletReturns201AndId() throws Exception {

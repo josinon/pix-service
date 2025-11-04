@@ -34,6 +34,8 @@ public class WalletRepositoryAdapter implements WalletRepositoryPort {
         return jpa.findById(id)
                 .map(e -> Wallet.builder()
                         .id(e.getId())
+                        .status(e.getStatus())
+                        .createdAt(e.getCreatedAt())
                         .build());
     }
 }

@@ -94,6 +94,8 @@ public class PixTransferServiceTest {
 
         when(transferRepositoryPort.existsByIdempotencyKey(idempotencyKey)).thenReturn(false);
         when(walletRepositoryPort.findById(fromWalletId)).thenReturn(Optional.of(fromWallet));
+        when(pixKeyRepositoryPort.findByValueAndActive(pixKey)).thenReturn(Optional.of(pixKeyEntity));
+        when(walletRepositoryPort.findById(toWalletId)).thenReturn(Optional.of(toWallet));
         when(ledgerEntryRepositoryPort.getCurrentBalance(fromWalletId.toString())).thenReturn(Optional.of(new BigDecimal("500.00")));
 
         TransferRepositoryPort.TransferResult transferResult = new TransferRepositoryPort.TransferResult(
@@ -119,6 +121,8 @@ public class PixTransferServiceTest {
 
         verify(transferRepositoryPort).existsByIdempotencyKey(idempotencyKey);
         verify(walletRepositoryPort).findById(fromWalletId);
+        verify(pixKeyRepositoryPort).findByValueAndActive(pixKey);
+        verify(walletRepositoryPort).findById(toWalletId);
         verify(ledgerEntryRepositoryPort).getCurrentBalance(fromWalletId.toString());
         verify(transferRepositoryPort).save(any());
     }
@@ -289,9 +293,26 @@ public class PixTransferServiceTest {
                 .status(WalletStatus.ACTIVE)
                 .createdAt(Instant.now())
                 .build();
+        
+        Wallet toWallet = Wallet.builder()
+                .id(toWalletId)
+                .status(WalletStatus.ACTIVE)
+                .createdAt(Instant.now())
+                .build();
+
+        PixKey pixKeyEntity = new PixKey(
+                UUID.randomUUID(),
+                toWalletId,
+                PixKeyType.CPF,
+                pixKey,
+                PixKeyStatus.ACTIVE,
+                OffsetDateTime.now()
+        );
 
         when(transferRepositoryPort.existsByIdempotencyKey(idempotencyKey)).thenReturn(false);
         when(walletRepositoryPort.findById(fromWalletId)).thenReturn(Optional.of(fromWallet));
+        when(pixKeyRepositoryPort.findByValueAndActive(pixKey)).thenReturn(Optional.of(pixKeyEntity));
+        when(walletRepositoryPort.findById(toWalletId)).thenReturn(Optional.of(toWallet));
         when(ledgerEntryRepositoryPort.getCurrentBalance(fromWalletId.toString())).thenReturn(Optional.of(new BigDecimal("50.00")));
 
         // Act & Assert
