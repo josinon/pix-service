@@ -25,9 +25,6 @@ public class WebhookInboxRepositoryAdapter implements WebhookInboxRepositoryPort
             .eventId(event.eventId())
             .eventType(event.eventType())
             .eventTime(event.occurredAt())
-            .payloadHash(String.valueOf(event.eventId().hashCode()))
-            .receivedAt(event.processedAt())
-            .processed(true)
             .build();
         
         webhookInboxJpaRepository.save(entity);

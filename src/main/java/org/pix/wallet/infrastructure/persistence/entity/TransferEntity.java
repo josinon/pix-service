@@ -47,12 +47,8 @@ public class TransferEntity {
   @Builder.Default
   private TransferStatus status = TransferStatus.PENDING;
 
-  private String reasonCode; // opcional (ex.: INSUFFICIENT_FUNDS)
-
   @Column(nullable = false)
   private Instant initiatedAt;
-
-  private Instant appliedAt;
 
   // Usa @Version para controle otimista de concorrência (webhooks fora de ordem)
   @Version

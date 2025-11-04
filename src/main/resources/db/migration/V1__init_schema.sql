@@ -1,59 +1,58 @@
-create table IF NOT EXISTS wallet (
-  id uuid primary key,
-  status varchar(16) not null default 'ACTIVE',
-  created_at timestamptz not null default now(),
-  version int not null default 0
+-- 1) Wallet table
+CREATE TABLE IF NOT EXISTS wallet (
+  id         UUID PRIMARY KEY,
+  status     VARCHAR(16) NOT NULL DEFAULT 'ACTIVE',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  version    INT NOT NULL DEFAULT 0
 );
 
-create table IF NOT EXISTS pix_key (
-  id uuid primary key,
-  wallet_id uuid not null references wallet(id),
-  type varchar(16) not null,
-  value varchar(255) not null,
-  status varchar(16) not null default 'ACTIVE',
-  created_at timestamptz not null default now(),
-  revoked_at timestamptz null,
-  constraint uq_pix_active unique (type, value, status),
-  CONSTRAINT fk_pix_key_wallet FOREIGN KEY (wallet_id) REFERENCES wallet(id)
+-- 2) PIX Key table
+CREATE TABLE IF NOT EXISTS pix_key (
+  id         UUID PRIMARY KEY,
+  wallet_id  UUID NOT NULL REFERENCES wallet(id),
+  type       VARCHAR(16) NOT NULL,
+  value      VARCHAR(255) NOT NULL,
+  status     VARCHAR(16) NOT NULL DEFAULT 'ACTIVE',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT fk_pix_key_wallet FOREIGN KEY (wallet_id) REFERENCES wallet(id),
+  CONSTRAINT uq_pix_active UNIQUE (type, value, status)
 );
 
-create index IF NOT EXISTS idx_pix_key_wallet on pix_key(wallet_id);
+CREATE INDEX IF NOT EXISTS idx_pix_key_wallet ON pix_key(wallet_id);
 
 -- Unicidade apenas para chaves ativas
-CREATE UNIQUE INDEX IF NOT EXISTS uq_pixkey_active ON pix_key (value)
+CREATE UNIQUE INDEX IF NOT EXISTS uq_pixkey_active ON pix_key(value)
   WHERE status = 'ACTIVE';
 
+-- 3) Transfer table
 CREATE TABLE IF NOT EXISTS transfer (
   id               UUID PRIMARY KEY,
   end_to_end_id    TEXT NOT NULL UNIQUE,
+  idempotency_key  VARCHAR(64),
   from_wallet_id   TEXT NOT NULL,
   to_wallet_id     TEXT NOT NULL,
   amount           NUMERIC(15,2) NOT NULL CHECK (amount > 0),
-  currency         CHAR(3) NOT NULL,
+  currency         CHAR(3) NOT NULL DEFAULT 'BRL',
   status           TEXT NOT NULL,   -- PENDING, CONFIRMED, REJECTED
-  reason_code      TEXT,            -- opcional (ex.: INSUFFICIENT_FUNDS)
   initiated_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
-  applied_at       TIMESTAMPTZ,     -- quando último estado foi aplicado (para ordenação)
   version          INT NOT NULL DEFAULT 0, -- controle otimista p/ webhook
   updated_at       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE INDEX IF NOT EXISTS ix_transfer_from ON transfer(from_wallet_id);
-CREATE INDEX IF NOT EXISTS ix_transfer_to   ON transfer(to_wallet_id);
+CREATE INDEX IF NOT EXISTS ix_transfer_to ON transfer(to_wallet_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_transfer_idempotency_key ON transfer(idempotency_key) 
+  WHERE idempotency_key IS NOT NULL;
 
--- 4) Lançamentos imutáveis (ledger)
--- Particionar por mês em effective_at (não mostrado aqui o template de partições)
+-- 4) Ledger Entry table (event sourcing para saldo)
 CREATE TABLE IF NOT EXISTS ledger_entry (
-  id               uuid PRIMARY KEY,
+  id               UUID PRIMARY KEY,
   wallet_id        UUID NOT NULL REFERENCES wallet(id),
-  transfer_id      UUID REFERENCES transfer(id),
-  operation_type   TEXT NOT NULL,  -- DEPOSIT, WITHDRAWAL, TRANSFER_OUT, TRANSFER_IN, REVERSAL, ADJUSTMENT
-  amount           NUMERIC(15,2) NOT NULL, -- sinal + (crédito) / - (débito)
-  available        BOOLEAN NOT NULL DEFAULT TRUE, -- se afeta saldo disponível
-  effective_at     TIMESTAMPTZ NOT NULL,          -- quando passa a valer
+  operation_type   TEXT NOT NULL,  -- DEPOSIT, WITHDRAW
+  amount           NUMERIC(15,2) NOT NULL CHECK (amount <> 0),
+  effective_at     TIMESTAMPTZ NOT NULL,
   created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
-  idempotency_key VARCHAR(64),
-  CONSTRAINT ck_nonzero_amount CHECK (amount <> 0)
+  idempotency_key  VARCHAR(64)
 );
 
 -- Idempotência por carteira+idempotency_key
@@ -63,18 +62,15 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_ledger_entry_idempotency_key ON ledger_entr
 CREATE INDEX IF NOT EXISTS ix_ledger_wallet_time ON ledger_entry(wallet_id, effective_at);
 CREATE INDEX IF NOT EXISTS ix_ledger_wallet ON ledger_entry(wallet_id);
 
-
-
--- 7) Inbox de Webhook (robustez a duplicados/fora de ordem)
+-- 5) Webhook Inbox table (idempotência de webhooks)
 CREATE TABLE IF NOT EXISTS webhook_inbox (
-  id               UUID PRIMARY KEY,
-  end_to_end_id    TEXT NOT NULL,
-  event_type       TEXT NOT NULL, -- CONFIRMED/REJECTED
-  event_time       TIMESTAMPTZ NOT NULL, -- carimbo vindo do emissor (se houver) ou received_at
-  payload_hash     TEXT NOT NULL,
-  received_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
-  processed        BOOLEAN NOT NULL DEFAULT FALSE,
-  UNIQUE (end_to_end_id, payload_hash)
+  id             UUID PRIMARY KEY,
+  end_to_end_id  TEXT NOT NULL UNIQUE,
+  event_id       TEXT NOT NULL,
+  event_type     TEXT NOT NULL, -- CONFIRMED/REJECTED
+  event_time     TIMESTAMPTZ NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS ix_webhook_e2e_time ON webhook_inbox(end_to_end_id, event_time DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_webhook_event_id ON webhook_inbox(event_id) 
+  WHERE event_id IS NOT NULL;

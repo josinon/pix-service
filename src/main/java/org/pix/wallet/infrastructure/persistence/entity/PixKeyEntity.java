@@ -41,7 +41,4 @@ public class PixKeyEntity {
   @Column(name = "created_at", nullable = false)
   private OffsetDateTime createdAt = OffsetDateTime.now();
 
-  @Column(name = "revoked_at", nullable = true)
-  private OffsetDateTime revokedAt;
-
 }

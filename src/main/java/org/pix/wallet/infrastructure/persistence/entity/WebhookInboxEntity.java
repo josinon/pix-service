@@ -8,7 +8,8 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "webhook_inbox", indexes = {
-    @Index(name = "ix_webhook_e2e_time", columnList = "end_to_end_id, event_time")
+    @Index(name = "ix_webhook_e2e_time", columnList = "end_to_end_id, event_time"),
+    @Index(name = "uq_webhook_inbox_e2e", columnList = "end_to_end_id", unique = true)
 })
 @Getter
 @Setter
@@ -20,7 +21,7 @@ public class WebhookInboxEntity {
     @Id
     private UUID id;
 
-    @Column(name = "end_to_end_id", nullable = false)
+    @Column(name = "end_to_end_id", nullable = false, unique = true)
     private String endToEndId;
 
     @Column(name = "event_id", nullable = false)
@@ -32,24 +33,4 @@ public class WebhookInboxEntity {
     @Column(name = "event_time", nullable = false)
     private Instant eventTime;
 
-    @Column(name = "payload_hash", nullable = false)
-    private String payloadHash;
-
-    @Column(name = "received_at", nullable = false)
-    private Instant receivedAt;
-
-    @Builder.Default
-    @Column(name = "processed", nullable = false)
-    private Boolean processed = false;
-
-    @PrePersist
-    void prePersist() {
-        if (receivedAt == null) {
-            receivedAt = Instant.now();
-        }
-        if (payloadHash == null) {
-            // Use eventId as hash if not provided
-            payloadHash = String.valueOf(eventId.hashCode());
-        }
-    }
 }
