@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.Instant;
+import java.util.UUID;
 
 @Entity
 @Table(name = "webhook_inbox", indexes = {
@@ -17,8 +18,7 @@ import java.time.Instant;
 public class WebhookInboxEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private UUID id;
 
     @Column(name = "end_to_end_id", nullable = false)
     private String endToEndId;

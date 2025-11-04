@@ -17,6 +17,7 @@ import java.util.UUID;
 @Repository
 public interface TransferJpaRepository extends JpaRepository<TransferEntity, UUID> {
   Optional<TransferEntity> findByEndToEndId(String endToEndId);
+  Optional<TransferEntity> findByIdempotencyKey(String idempotencyKey);
 
   Page<TransferEntity> findByFromWalletIdOrderByInitiatedAtDesc(UUID walletId, Pageable pageable);
   Page<TransferEntity> findByToWalletIdOrderByInitiatedAtDesc(UUID walletId, Pageable pageable);

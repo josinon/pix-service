@@ -1,6 +1,7 @@
 package org.pix.wallet.application.port.out;
 
 import java.time.Instant;
+import java.util.UUID;
 
 public interface WebhookInboxRepositoryPort {
     
@@ -15,6 +16,7 @@ public interface WebhookInboxRepositoryPort {
     void save(WebhookEvent event);
     
     record WebhookEvent(
+        UUID id,
         String endToEndId,
         String eventId,
         String eventType,

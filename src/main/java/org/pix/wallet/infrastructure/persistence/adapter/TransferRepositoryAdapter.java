@@ -21,15 +21,12 @@ public class TransferRepositoryAdapter implements TransferRepositoryPort {
 
     @Override
     public boolean existsByIdempotencyKey(String idempotencyKey) {
-        // TODO: Implement when idempotency table is created
-        // For now, check in transfer table directly if it has idempotency column
-        return false;
+        return transferJpaRepository.findByIdempotencyKey(idempotencyKey).isPresent();
     }
 
     @Override
     public Optional<TransferResult> findByIdempotencyKey(String idempotencyKey) {
-        // TODO: Implement when idempotency table is created
-        return Optional.empty();
+        return transferJpaRepository.findByIdempotencyKey(idempotencyKey).map(this::toResult);
     }
 
     @Override
@@ -48,9 +45,10 @@ public class TransferRepositoryAdapter implements TransferRepositoryPort {
         
         TransferEntity entity = TransferEntity.builder()
             .endToEndId(command.endToEndId())
+            .idempotencyKey(command.idempotencyKey())
             .fromWallet(fromWallet)
             .toWallet(toWallet)
-            .amountCents(command.amount().multiply(new BigDecimal("100")).longValue())
+            .amount(command.amount().multiply(new BigDecimal("100")))
             .currency(command.currency())
             .status(TransferStatus.valueOf(command.status()))
             .version(0)
@@ -74,7 +72,7 @@ public class TransferRepositoryAdapter implements TransferRepositoryPort {
     }
 
     private TransferResult toResult(TransferEntity entity) {
-        BigDecimal amount = BigDecimal.valueOf(entity.getAmountCents()).divide(new BigDecimal("100"));
+        BigDecimal amount = entity.getAmount().divide(new BigDecimal("100"));
         
         return new TransferResult(
             entity.getId(),

@@ -84,7 +84,7 @@ CREATE INDEX IF NOT EXISTS ix_snapshot_wallet_time ON balance_snapshot(wallet_id
 
 -- 7) Inbox de Webhook (robustez a duplicados/fora de ordem)
 CREATE TABLE IF NOT EXISTS webhook_inbox (
-  id               BIGSERIAL PRIMARY KEY,
+  id               UUID PRIMARY KEY,
   end_to_end_id    TEXT NOT NULL,
   event_type       TEXT NOT NULL, -- CONFIRMED/REJECTED
   event_time       TIMESTAMPTZ NOT NULL, -- carimbo vindo do emissor (se houver) ou received_at

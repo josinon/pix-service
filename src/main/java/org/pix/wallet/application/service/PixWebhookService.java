@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -58,6 +59,7 @@ public class PixWebhookService implements ProcessPixWebhookUseCase {
         
         // 6. Save webhook event to inbox table
         var webhookEvent = new WebhookInboxRepositoryPort.WebhookEvent(
+            UUID.randomUUID(),
             command.endToEndId(),
             command.eventId(),
             command.eventType(),

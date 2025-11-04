@@ -20,6 +20,7 @@ public class WebhookInboxRepositoryAdapter implements WebhookInboxRepositoryPort
     @Override
     public void save(WebhookEvent event) {
         WebhookInboxEntity entity = WebhookInboxEntity.builder()
+            .id(event.id())
             .endToEndId(event.endToEndId())
             .eventId(event.eventId())
             .eventType(event.eventType())

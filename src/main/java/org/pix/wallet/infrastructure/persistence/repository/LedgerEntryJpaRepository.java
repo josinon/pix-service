@@ -15,8 +15,8 @@ public interface LedgerEntryJpaRepository extends JpaRepository<LedgerEntryEntit
         SELECT 
             COALESCE(SUM(
                 CASE 
-                    WHEN operationType = 'DEPOSIT' THEN amount
-                    WHEN operationType = 'WITHDRAW' THEN -amount
+                    WHEN operation_type = 'DEPOSIT' THEN amount
+                    WHEN operation_type = 'WITHDRAW' THEN -amount
                     ELSE 0
                 END
             ), 0) AS balance
@@ -30,8 +30,8 @@ public interface LedgerEntryJpaRepository extends JpaRepository<LedgerEntryEntit
         SELECT 
             COALESCE(SUM(
                 CASE 
-                    WHEN operationType = 'DEPOSIT' THEN amount
-                    WHEN operationType = 'WITHDRAW' THEN -amount
+                    WHEN operation_type = 'DEPOSIT' THEN amount
+                    WHEN operation_type = 'WITHDRAW' THEN -amount
                     ELSE 0
                 END
             ), 0) AS balance

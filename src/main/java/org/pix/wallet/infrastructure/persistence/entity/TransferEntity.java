@@ -2,6 +2,8 @@ package org.pix.wallet.infrastructure.persistence.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -11,7 +13,8 @@ import org.pix.wallet.domain.model.enums.TransferStatus;
 @Table(name = "transfer", indexes = {
     @Index(name = "ix_transfer_from", columnList = "from_wallet_id"),
     @Index(name = "ix_transfer_to", columnList = "to_wallet_id"),
-    @Index(name = "uq_transfer_e2e", columnList = "end_to_end_id", unique = true)
+  @Index(name = "uq_transfer_e2e", columnList = "end_to_end_id", unique = true),
+  @Index(name = "uq_transfer_idempotency", columnList = "idempotency_key", unique = true)
 })
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class TransferEntity {
@@ -23,6 +26,9 @@ public class TransferEntity {
   @Column(name = "end_to_end_id", nullable = false, unique = true)
   private String endToEndId;
 
+  @Column(name = "idempotency_key", nullable = false, unique = true, length = 64)
+  private String idempotencyKey;
+
   @ManyToOne(optional = false, fetch = FetchType.LAZY)
   @JoinColumn(name = "from_wallet_id", nullable = false)
   private WalletEntity fromWallet;
@@ -31,14 +37,16 @@ public class TransferEntity {
   @JoinColumn(name = "to_wallet_id", nullable = false)
   private WalletEntity toWallet;
 
-  @Column(name = "amount_cents", nullable = false)
-  private long amountCents;
+  @Column(name = "amount", nullable = false)
+  private BigDecimal amount;
 
   @Column(length = 3, nullable = false)
+  @Builder.Default
   private String currency = "BRL";
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false, length = 16)
+  @Builder.Default
   private TransferStatus status = TransferStatus.PENDING;
 
   private String reasonCode; // opcional (ex.: INSUFFICIENT_FUNDS)
