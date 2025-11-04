@@ -25,8 +25,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import io.swagger.v3.oas.annotations.Parameter;
 import jakarta.validation.Valid;
 import jakarta.websocket.server.PathParam;
 
@@ -58,7 +60,9 @@ public class WalletController {
     }
 
     @GetMapping("/{id}/balance")
-    public ResponseEntity<?> balance(@PathVariable UUID id, @PathParam("at") Instant at) {
+    public ResponseEntity<?> balance(
+            @PathVariable UUID id, 
+            @RequestParam(required = false) @Parameter(description = "Point in time to get balance", required = false) Instant at) {
         return ResponseEntity.ok(getBalance.execute(new GetBalanceUseCase.Command(id, at)));
     }
 
