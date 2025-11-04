@@ -69,7 +69,7 @@ public class PixTransferServiceTest {
     @DisplayName("Should create PIX transfer successfully")
     void shouldCreatePixTransferSuccessfully() {
         // Arrange
-        var command = new ProcessPixTransferUseCase.Command(fromWalletId, pixKey, amount, idempotencyKey);
+        var command = new ProcessPixTransferUseCase.Command(fromWalletId.toString(), pixKey, amount, idempotencyKey);
 
         Wallet fromWallet = Wallet.builder()
                 .id(fromWalletId)
@@ -94,15 +94,13 @@ public class PixTransferServiceTest {
 
         when(transferRepositoryPort.existsByIdempotencyKey(idempotencyKey)).thenReturn(false);
         when(walletRepositoryPort.findById(fromWalletId)).thenReturn(Optional.of(fromWallet));
-        when(ledgerEntryRepositoryPort.getCurrentBalance(fromWalletId)).thenReturn(Optional.of(new BigDecimal("500.00")));
-        when(pixKeyRepositoryPort.findByValueAndActive(pixKey)).thenReturn(Optional.of(pixKeyEntity));
-        when(walletRepositoryPort.findById(toWalletId)).thenReturn(Optional.of(toWallet));
+        when(ledgerEntryRepositoryPort.getCurrentBalance(fromWalletId.toString())).thenReturn(Optional.of(new BigDecimal("500.00")));
 
         TransferRepositoryPort.TransferResult transferResult = new TransferRepositoryPort.TransferResult(
                 UUID.randomUUID(),
                 "E12345678901234567890123456789AB",
-                fromWalletId,
-                toWalletId,
+                fromWalletId.toString(),
+                toWalletId.toString(),
                 amount,
                 "BRL",
                 "PENDING",
@@ -121,9 +119,7 @@ public class PixTransferServiceTest {
 
         verify(transferRepositoryPort).existsByIdempotencyKey(idempotencyKey);
         verify(walletRepositoryPort).findById(fromWalletId);
-        verify(ledgerEntryRepositoryPort).getCurrentBalance(fromWalletId);
-        verify(pixKeyRepositoryPort).findByValueAndActive(pixKey);
-        verify(walletRepositoryPort).findById(toWalletId);
+        verify(ledgerEntryRepositoryPort).getCurrentBalance(fromWalletId.toString());
         verify(transferRepositoryPort).save(any());
     }
 
@@ -131,13 +127,13 @@ public class PixTransferServiceTest {
     @DisplayName("Should return existing transfer when idempotency key already exists")
     void shouldReturnExistingTransferWhenIdempotencyKeyExists() {
         // Arrange
-        var command = new ProcessPixTransferUseCase.Command(fromWalletId, pixKey, amount, idempotencyKey);
+        var command = new ProcessPixTransferUseCase.Command(fromWalletId.toString(), pixKey, amount, idempotencyKey);
 
         TransferRepositoryPort.TransferResult existingTransfer = new TransferRepositoryPort.TransferResult(
                 UUID.randomUUID(),
                 "E12345678901234567890123456789AB",
-                fromWalletId,
-                toWalletId,
+                fromWalletId.toString(),
+                toWalletId.toString(),
                 amount,
                 "BRL",
                 "CONFIRMED",
@@ -165,7 +161,7 @@ public class PixTransferServiceTest {
         @DisplayName("Should throw IllegalState when idempotent transfer record is missing")
         void shouldThrowIllegalStateWhenIdempotentTransferMissing() {
                 // Arrange
-                var command = new ProcessPixTransferUseCase.Command(fromWalletId, pixKey, amount, idempotencyKey);
+                var command = new ProcessPixTransferUseCase.Command(fromWalletId.toString(), pixKey, amount, idempotencyKey);
 
                 when(transferRepositoryPort.existsByIdempotencyKey(idempotencyKey)).thenReturn(true);
                 when(transferRepositoryPort.findByIdempotencyKey(idempotencyKey)).thenReturn(Optional.empty());
@@ -185,7 +181,7 @@ public class PixTransferServiceTest {
     @DisplayName("Should throw exception when amount is null")
     void shouldThrowExceptionWhenAmountIsNull() {
         // Arrange
-        var command = new ProcessPixTransferUseCase.Command(fromWalletId, pixKey, null, idempotencyKey);
+        var command = new ProcessPixTransferUseCase.Command(fromWalletId.toString(), pixKey, null, idempotencyKey);
 
         // Act & Assert
         assertThatThrownBy(() -> pixTransferService.execute(command))
@@ -199,7 +195,7 @@ public class PixTransferServiceTest {
     @DisplayName("Should throw exception when amount is zero")
     void shouldThrowExceptionWhenAmountIsZero() {
         // Arrange
-        var command = new ProcessPixTransferUseCase.Command(fromWalletId, pixKey, BigDecimal.ZERO, idempotencyKey);
+        var command = new ProcessPixTransferUseCase.Command(fromWalletId.toString(), pixKey, BigDecimal.ZERO, idempotencyKey);
 
         // Act & Assert
         assertThatThrownBy(() -> pixTransferService.execute(command))
@@ -213,7 +209,7 @@ public class PixTransferServiceTest {
     @DisplayName("Should throw exception when amount is negative")
     void shouldThrowExceptionWhenAmountIsNegative() {
         // Arrange
-        var command = new ProcessPixTransferUseCase.Command(fromWalletId, pixKey, new BigDecimal("-50.00"), idempotencyKey);
+        var command = new ProcessPixTransferUseCase.Command(fromWalletId.toString(), pixKey, new BigDecimal("-50.00"), idempotencyKey);
 
         // Act & Assert
         assertThatThrownBy(() -> pixTransferService.execute(command))
@@ -227,7 +223,7 @@ public class PixTransferServiceTest {
     @DisplayName("Should throw exception when idempotency key is null")
     void shouldThrowExceptionWhenIdempotencyKeyIsNull() {
         // Arrange
-        var command = new ProcessPixTransferUseCase.Command(fromWalletId, pixKey, amount, null);
+        var command = new ProcessPixTransferUseCase.Command(fromWalletId.toString(), pixKey, amount, null);
 
         // Act & Assert
         assertThatThrownBy(() -> pixTransferService.execute(command))
@@ -241,7 +237,7 @@ public class PixTransferServiceTest {
     @DisplayName("Should throw exception when idempotency key is blank")
     void shouldThrowExceptionWhenIdempotencyKeyIsBlank() {
         // Arrange
-        var command = new ProcessPixTransferUseCase.Command(fromWalletId, pixKey, amount, "   ");
+        var command = new ProcessPixTransferUseCase.Command(fromWalletId.toString(), pixKey, amount, "   ");
 
         // Act & Assert
         assertThatThrownBy(() -> pixTransferService.execute(command))
@@ -255,7 +251,7 @@ public class PixTransferServiceTest {
     @DisplayName("Should throw exception when PIX key is null")
     void shouldThrowExceptionWhenPixKeyIsNull() {
         // Arrange
-        var command = new ProcessPixTransferUseCase.Command(fromWalletId, null, amount, idempotencyKey);
+        var command = new ProcessPixTransferUseCase.Command(fromWalletId.toString(), null, amount, idempotencyKey);
 
         // Act & Assert
         assertThatThrownBy(() -> pixTransferService.execute(command))
@@ -269,7 +265,7 @@ public class PixTransferServiceTest {
     @DisplayName("Should throw exception when from wallet not found")
     void shouldThrowExceptionWhenFromWalletNotFound() {
         // Arrange
-        var command = new ProcessPixTransferUseCase.Command(fromWalletId, pixKey, amount, idempotencyKey);
+        var command = new ProcessPixTransferUseCase.Command(fromWalletId.toString(), pixKey, amount, idempotencyKey);
 
         when(transferRepositoryPort.existsByIdempotencyKey(idempotencyKey)).thenReturn(false);
         when(walletRepositoryPort.findById(fromWalletId)).thenReturn(Optional.empty());
@@ -286,7 +282,7 @@ public class PixTransferServiceTest {
     @DisplayName("Should throw exception when insufficient balance")
     void shouldThrowExceptionWhenInsufficientBalance() {
         // Arrange
-        var command = new ProcessPixTransferUseCase.Command(fromWalletId, pixKey, amount, idempotencyKey);
+        var command = new ProcessPixTransferUseCase.Command(fromWalletId.toString(), pixKey, amount, idempotencyKey);
 
         Wallet fromWallet = Wallet.builder()
                 .id(fromWalletId)
@@ -296,7 +292,7 @@ public class PixTransferServiceTest {
 
         when(transferRepositoryPort.existsByIdempotencyKey(idempotencyKey)).thenReturn(false);
         when(walletRepositoryPort.findById(fromWalletId)).thenReturn(Optional.of(fromWallet));
-        when(ledgerEntryRepositoryPort.getCurrentBalance(fromWalletId)).thenReturn(Optional.of(new BigDecimal("50.00")));
+        when(ledgerEntryRepositoryPort.getCurrentBalance(fromWalletId.toString())).thenReturn(Optional.of(new BigDecimal("50.00")));
 
         // Act & Assert
         assertThatThrownBy(() -> pixTransferService.execute(command))
@@ -306,97 +302,4 @@ public class PixTransferServiceTest {
         verify(transferRepositoryPort, never()).save(any());
     }
 
-    @Test
-    @DisplayName("Should throw exception when PIX key not found")
-    void shouldThrowExceptionWhenPixKeyNotFound() {
-        // Arrange
-        var command = new ProcessPixTransferUseCase.Command(fromWalletId, pixKey, amount, idempotencyKey);
-
-        Wallet fromWallet = Wallet.builder()
-                .id(fromWalletId)
-                .status(WalletStatus.ACTIVE)
-                .createdAt(Instant.now())
-                .build();
-
-        when(transferRepositoryPort.existsByIdempotencyKey(idempotencyKey)).thenReturn(false);
-        when(walletRepositoryPort.findById(fromWalletId)).thenReturn(Optional.of(fromWallet));
-        when(ledgerEntryRepositoryPort.getCurrentBalance(fromWalletId)).thenReturn(Optional.of(new BigDecimal("500.00")));
-        when(pixKeyRepositoryPort.findByValueAndActive(pixKey)).thenReturn(Optional.empty());
-
-        // Act & Assert
-        assertThatThrownBy(() -> pixTransferService.execute(command))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("PIX key not found or inactive");
-
-        verify(transferRepositoryPort, never()).save(any());
-    }
-
-    @Test
-    @DisplayName("Should throw exception when transferring to same wallet")
-    void shouldThrowExceptionWhenTransferringToSameWallet() {
-        // Arrange
-        var command = new ProcessPixTransferUseCase.Command(fromWalletId, pixKey, amount, idempotencyKey);
-
-        Wallet fromWallet = Wallet.builder()
-                .id(fromWalletId)
-                .status(WalletStatus.ACTIVE)
-                .createdAt(Instant.now())
-                .build();
-
-        PixKey pixKeyEntity = new PixKey(
-                UUID.randomUUID(),
-                fromWalletId, // Same wallet
-                PixKeyType.CPF,
-                pixKey,
-                PixKeyStatus.ACTIVE,
-                OffsetDateTime.now()
-        );
-
-        when(transferRepositoryPort.existsByIdempotencyKey(idempotencyKey)).thenReturn(false);
-        when(walletRepositoryPort.findById(fromWalletId)).thenReturn(Optional.of(fromWallet));
-        when(ledgerEntryRepositoryPort.getCurrentBalance(fromWalletId)).thenReturn(Optional.of(new BigDecimal("500.00")));
-        when(pixKeyRepositoryPort.findByValueAndActive(pixKey)).thenReturn(Optional.of(pixKeyEntity));
-
-        // Act & Assert
-        assertThatThrownBy(() -> pixTransferService.execute(command))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Cannot transfer to the same wallet");
-
-        verify(transferRepositoryPort, never()).save(any());
-    }
-
-    @Test
-    @DisplayName("Should throw exception when destination wallet not found")
-    void shouldThrowExceptionWhenDestinationWalletNotFound() {
-        // Arrange
-        var command = new ProcessPixTransferUseCase.Command(fromWalletId, pixKey, amount, idempotencyKey);
-
-        Wallet fromWallet = Wallet.builder()
-                .id(fromWalletId)
-                .status(WalletStatus.ACTIVE)
-                .createdAt(Instant.now())
-                .build();
-
-        PixKey pixKeyEntity = new PixKey(
-                UUID.randomUUID(),
-                toWalletId,
-                PixKeyType.CPF,
-                pixKey,
-                PixKeyStatus.ACTIVE,
-                OffsetDateTime.now()
-        );
-
-        when(transferRepositoryPort.existsByIdempotencyKey(idempotencyKey)).thenReturn(false);
-        when(walletRepositoryPort.findById(fromWalletId)).thenReturn(Optional.of(fromWallet));
-        when(ledgerEntryRepositoryPort.getCurrentBalance(fromWalletId)).thenReturn(Optional.of(new BigDecimal("500.00")));
-        when(pixKeyRepositoryPort.findByValueAndActive(pixKey)).thenReturn(Optional.of(pixKeyEntity));
-        when(walletRepositoryPort.findById(toWalletId)).thenReturn(Optional.empty());
-
-        // Act & Assert
-        assertThatThrownBy(() -> pixTransferService.execute(command))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Destination wallet not found");
-
-        verify(transferRepositoryPort, never()).save(any());
-    }
 }

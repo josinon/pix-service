@@ -29,9 +29,9 @@ public class LedgerEntryRepositoryAdapter implements LedgerEntryRepositoryPort {
     }
 
     @Override
-    public UUID deposit(UUID walletId, BigDecimal amount, String idempotencyKey) {
+    public String deposit(String walletId, BigDecimal amount, String idempotencyKey) {
 
-        WalletEntity wallet = walletRepo.findById(walletId)
+        WalletEntity wallet = walletRepo.findById(UUID.fromString(walletId))
             .orElseThrow(() -> new IllegalArgumentException("Wallet not found"));
 
         LedgerEntryEntity e = new LedgerEntryEntity();
@@ -42,12 +42,12 @@ public class LedgerEntryRepositoryAdapter implements LedgerEntryRepositoryPort {
         e.setCreatedAt(Instant.now());
         e.setIdempotencyKey(idempotencyKey);
         repo.save(e);
-        return e.getId();
+        return e.getId().toString();
     }
 
     @Override
-    public UUID withdraw(UUID walletId, BigDecimal amount, String idempotencyKey) {
-        WalletEntity wallet = walletRepo.findById(walletId)
+    public String withdraw(String walletId, BigDecimal amount, String idempotencyKey) {
+        WalletEntity wallet = walletRepo.findById(UUID.fromString(walletId))
             .orElseThrow(() -> new IllegalArgumentException("Wallet not found"));
 
         LedgerEntryEntity e = new LedgerEntryEntity();
@@ -58,16 +58,16 @@ public class LedgerEntryRepositoryAdapter implements LedgerEntryRepositoryPort {
         e.setCreatedAt(Instant.now());
         e.setIdempotencyKey(idempotencyKey);
         repo.save(e);
-        return e.getId();
+        return e.getId().toString();
     }
 
     @Override
-    public Optional<BigDecimal> getBalanceAsOf(UUID walletId, Instant asOf) {
-        return repo.findHistoricalBalance(walletId, asOf);
+    public Optional<BigDecimal> getBalanceAsOf(String walletId, Instant asOf) {
+        return repo.findHistoricalBalance(UUID.fromString(walletId), asOf);
     }
 
     @Override
-    public Optional<BigDecimal> getCurrentBalance(UUID walletId) {
-        return repo.findCurrentBalanceByWalletId(walletId);
+    public Optional<BigDecimal> getCurrentBalance(String walletId) {
+        return repo.findCurrentBalanceByWalletId(UUID.fromString(walletId));
     }
 }

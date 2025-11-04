@@ -32,8 +32,8 @@ class DepositServiceTest {
         var idempotenceKey = "k1";
         when(walletPort.findById(wid)).thenReturn(Optional.of(wallet()));
         when(ledgerPort.existsByIdempotencyKey(idempotenceKey)).thenReturn(false);
-        when(ledgerPort.getCurrentBalance(wid)).thenReturn(Optional.of(BigDecimal.ZERO));
-        when(ledgerPort.deposit(eq(wid), eq(new BigDecimal("25.00")), eq(idempotenceKey))).thenReturn(UUID.randomUUID());
+        when(ledgerPort.getCurrentBalance(wid.toString())).thenReturn(Optional.of(BigDecimal.ZERO));
+        when(ledgerPort.deposit(eq(wid.toString()), eq(new BigDecimal("25.00")), eq(idempotenceKey))).thenReturn(UUID.randomUUID().toString());
 
         var r = service.execute(new DepositUseCase.Command(wid, new BigDecimal("25.00"), idempotenceKey));
         assertEquals(wid, r.walletId());
@@ -45,7 +45,7 @@ class DepositServiceTest {
         var idempotenceKey = "k1";
         when(walletPort.findById(wid)).thenReturn(Optional.of(wallet()));
         when(ledgerPort.existsByIdempotencyKey(idempotenceKey)).thenReturn(true);
-        when(ledgerPort.getCurrentBalance(wid)).thenReturn(Optional.of(new BigDecimal("100.00")));
+        when(ledgerPort.getCurrentBalance(wid.toString())).thenReturn(Optional.of(new BigDecimal("100.00")));
 
         var r = service.execute(new DepositUseCase.Command(wid, new BigDecimal("25.00"), idempotenceKey));
         assertEquals(wid, r.walletId());

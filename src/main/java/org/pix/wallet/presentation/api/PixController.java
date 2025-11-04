@@ -34,7 +34,7 @@ public class PixController {
         }
         
         var command = new ProcessPixTransferUseCase.Command(
-            request.getFromWalletId(),
+            request.getFromWalletId().toString(),
             request.getToPixKey(),
             request.getAmount(),
             idempotencyKey

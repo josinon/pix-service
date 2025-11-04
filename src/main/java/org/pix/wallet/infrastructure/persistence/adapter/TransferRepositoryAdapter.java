@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.util.Optional;
+import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -37,17 +38,14 @@ public class TransferRepositoryAdapter implements TransferRepositoryPort {
 
     @Override
     public TransferResult save(TransferCommand command) {
-        WalletEntity fromWallet = walletJpaRepository.findById(command.fromWalletId())
+        walletJpaRepository.findById(UUID.fromString(command.fromWalletId()))
             .orElseThrow(() -> new IllegalArgumentException("From wallet not found: " + command.fromWalletId()));
-        
-        WalletEntity toWallet = walletJpaRepository.findById(command.toWalletId())
-            .orElseThrow(() -> new IllegalArgumentException("To wallet not found: " + command.toWalletId()));
-        
+
         TransferEntity entity = TransferEntity.builder()
             .endToEndId(command.endToEndId())
             .idempotencyKey(command.idempotencyKey())
-            .fromWallet(fromWallet)
-            .toWallet(toWallet)
+            .fromWallet(command.fromWalletId())
+            .toWallet(command.toWalletId())
             .amount(command.amount().multiply(new BigDecimal("100")))
             .currency(command.currency())
             .status(TransferStatus.valueOf(command.status()))
@@ -77,8 +75,8 @@ public class TransferRepositoryAdapter implements TransferRepositoryPort {
         return new TransferResult(
             entity.getId(),
             entity.getEndToEndId(),
-            entity.getFromWallet().getId(),
-            entity.getToWallet().getId(),
+            entity.getFromWallet(),
+            entity.getToWallet(),
             amount,
             entity.getCurrency(),
             entity.getStatus().name(),

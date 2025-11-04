@@ -43,7 +43,7 @@ public class PixTransferService implements ProcessPixTransferUseCase {
         }
         
         // 3. Validate source wallet exists
-        walletRepositoryPort.findById(command.fromWalletId())
+        walletRepositoryPort.findById(UUID.fromString(command.fromWalletId()))
             .orElseThrow(() -> new IllegalArgumentException("Source wallet not found: " + command.fromWalletId()));
         
         // 4. Validate source wallet has sufficient balance
@@ -54,21 +54,7 @@ public class PixTransferService implements ProcessPixTransferUseCase {
             throw new IllegalArgumentException("Insufficient balance. Available: " + currentBalance + ", Required: " + command.amount());
         }
         
-        // 5. Find destination wallet by PIX key
-        PixKey pixKey = pixKeyRepositoryPort.findByValueAndActive(command.toPixKey())
-            .orElseThrow(() -> new IllegalArgumentException("PIX key not found or inactive: " + command.toPixKey()));
-        
-        UUID toWalletId = pixKey.walletId();
-        
-        // 6. Validate not transferring to same wallet
-        if (command.fromWalletId().equals(toWalletId)) {
-            throw new IllegalArgumentException("Cannot transfer to the same wallet");
-        }
-        
-        // 7. Validate destination wallet exists
-        walletRepositoryPort.findById(toWalletId)
-            .orElseThrow(() -> new IllegalArgumentException("Destination wallet not found: " + toWalletId));
-        
+
         // 8. Generate unique endToEndId (E + 32 chars)
         String endToEndId = generateEndToEndId();
         
@@ -76,7 +62,7 @@ public class PixTransferService implements ProcessPixTransferUseCase {
         var transferCommand = new TransferRepositoryPort.TransferCommand(
             endToEndId,
             command.fromWalletId(),
-            toWalletId,
+            command.toPixKey(),
             command.amount(),
             "BRL",
             "PENDING",

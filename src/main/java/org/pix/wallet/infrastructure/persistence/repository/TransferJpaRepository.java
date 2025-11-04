@@ -19,8 +19,8 @@ public interface TransferJpaRepository extends JpaRepository<TransferEntity, UUI
   Optional<TransferEntity> findByEndToEndId(String endToEndId);
   Optional<TransferEntity> findByIdempotencyKey(String idempotencyKey);
 
-  Page<TransferEntity> findByFromWalletIdOrderByInitiatedAtDesc(UUID walletId, Pageable pageable);
-  Page<TransferEntity> findByToWalletIdOrderByInitiatedAtDesc(UUID walletId, Pageable pageable);
+  Page<TransferEntity> findByFromWalletOrderByInitiatedAtDesc(String walletId, Pageable pageable);
+  Page<TransferEntity> findByToWalletOrderByInitiatedAtDesc(String walletId, Pageable pageable);
 
   List<TransferEntity> findByStatus(TransferStatus status);
 

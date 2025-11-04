@@ -9,7 +9,6 @@ import org.pix.wallet.domain.model.enums.WalletStatus;
 import org.springframework.dao.DataIntegrityViolationException;
 
 import java.time.Instant;
-import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.UUID;
 

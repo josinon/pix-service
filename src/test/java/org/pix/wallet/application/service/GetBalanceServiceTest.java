@@ -54,7 +54,7 @@ class GetBalanceServiceTest {
         var command = new GetBalanceUseCase.Command(walletId, null);
 
         when(walletPort.findById(walletId)).thenReturn(Optional.of(wallet));
-        when(ledgerPort.getCurrentBalance(walletId)).thenReturn(Optional.of(expectedBalance));
+        when(ledgerPort.getCurrentBalance(walletId.toString())).thenReturn(Optional.of(expectedBalance));
 
         // Act
         GetBalanceUseCase.Result result = getBalanceService.execute(command);
@@ -65,7 +65,7 @@ class GetBalanceServiceTest {
         assertThat(result.balance()).isEqualByComparingTo(expectedBalance);
 
         verify(walletPort).findById(walletId);
-        verify(ledgerPort).getCurrentBalance(walletId);
+        verify(ledgerPort).getCurrentBalance(walletId.toString());
         verify(ledgerPort, never()).getBalanceAsOf(any(), any());
     }
 
@@ -76,7 +76,7 @@ class GetBalanceServiceTest {
         var command = new GetBalanceUseCase.Command(walletId, null);
 
         when(walletPort.findById(walletId)).thenReturn(Optional.of(wallet));
-        when(ledgerPort.getCurrentBalance(walletId)).thenReturn(Optional.empty());
+        when(ledgerPort.getCurrentBalance(walletId.toString())).thenReturn(Optional.empty());
 
         // Act
         GetBalanceUseCase.Result result = getBalanceService.execute(command);
@@ -87,7 +87,7 @@ class GetBalanceServiceTest {
         assertThat(result.balance()).isEqualByComparingTo(BigDecimal.ZERO);
 
         verify(walletPort).findById(walletId);
-        verify(ledgerPort).getCurrentBalance(walletId);
+        verify(ledgerPort).getCurrentBalance(walletId.toString());
     }
 
     @Test
@@ -99,7 +99,7 @@ class GetBalanceServiceTest {
         var command = new GetBalanceUseCase.Command(walletId, timestamp);
 
         when(walletPort.findById(walletId)).thenReturn(Optional.of(wallet));
-        when(ledgerPort.getBalanceAsOf(walletId, timestamp)).thenReturn(Optional.of(expectedBalance));
+        when(ledgerPort.getBalanceAsOf(walletId.toString(), timestamp)).thenReturn(Optional.of(expectedBalance));
 
         // Act
         GetBalanceUseCase.Result result = getBalanceService.execute(command);
@@ -110,7 +110,7 @@ class GetBalanceServiceTest {
         assertThat(result.balance()).isEqualByComparingTo(expectedBalance);
 
         verify(walletPort).findById(walletId);
-        verify(ledgerPort).getBalanceAsOf(walletId, timestamp);
+        verify(ledgerPort).getBalanceAsOf(walletId.toString(), timestamp);
         verify(ledgerPort, never()).getCurrentBalance(any());
     }
 
@@ -122,7 +122,7 @@ class GetBalanceServiceTest {
         var command = new GetBalanceUseCase.Command(walletId, timestamp);
 
         when(walletPort.findById(walletId)).thenReturn(Optional.of(wallet));
-        when(ledgerPort.getBalanceAsOf(walletId, timestamp)).thenReturn(Optional.empty());
+        when(ledgerPort.getBalanceAsOf(walletId.toString(), timestamp)).thenReturn(Optional.empty());
 
         // Act
         GetBalanceUseCase.Result result = getBalanceService.execute(command);
@@ -133,7 +133,7 @@ class GetBalanceServiceTest {
         assertThat(result.balance()).isEqualByComparingTo(BigDecimal.ZERO);
 
         verify(walletPort).findById(walletId);
-        verify(ledgerPort).getBalanceAsOf(walletId, timestamp);
+        verify(ledgerPort).getBalanceAsOf(walletId.toString(), timestamp);
     }
 
     @Test
@@ -162,7 +162,7 @@ class GetBalanceServiceTest {
         var command = new GetBalanceUseCase.Command(walletId, null);
 
         when(walletPort.findById(walletId)).thenReturn(Optional.of(wallet));
-        when(ledgerPort.getCurrentBalance(walletId)).thenReturn(Optional.of(negativeBalance));
+        when(ledgerPort.getCurrentBalance(walletId.toString())).thenReturn(Optional.of(negativeBalance));
 
         // Act
         GetBalanceUseCase.Result result = getBalanceService.execute(command);
@@ -180,7 +180,7 @@ class GetBalanceServiceTest {
         var command = new GetBalanceUseCase.Command(walletId, null);
 
         when(walletPort.findById(walletId)).thenReturn(Optional.of(wallet));
-        when(ledgerPort.getCurrentBalance(walletId)).thenReturn(Optional.of(largeBalance));
+        when(ledgerPort.getCurrentBalance(walletId.toString())).thenReturn(Optional.of(largeBalance));
 
         // Act
         GetBalanceUseCase.Result result = getBalanceService.execute(command);
@@ -198,7 +198,7 @@ class GetBalanceServiceTest {
         var command = new GetBalanceUseCase.Command(walletId, null);
 
         when(walletPort.findById(walletId)).thenReturn(Optional.of(wallet));
-        when(ledgerPort.getCurrentBalance(walletId)).thenReturn(Optional.of(smallBalance));
+        when(ledgerPort.getCurrentBalance(walletId.toString())).thenReturn(Optional.of(smallBalance));
 
         // Act
         GetBalanceUseCase.Result result = getBalanceService.execute(command);
@@ -217,7 +217,7 @@ class GetBalanceServiceTest {
         var command = new GetBalanceUseCase.Command(walletId, pastTimestamp);
 
         when(walletPort.findById(walletId)).thenReturn(Optional.of(wallet));
-        when(ledgerPort.getBalanceAsOf(walletId, pastTimestamp)).thenReturn(Optional.of(pastBalance));
+        when(ledgerPort.getBalanceAsOf(walletId.toString(), pastTimestamp)).thenReturn(Optional.of(pastBalance));
 
         // Act
         GetBalanceUseCase.Result result = getBalanceService.execute(command);
@@ -225,7 +225,7 @@ class GetBalanceServiceTest {
         // Assert
         assertThat(result).isNotNull();
         assertThat(result.balance()).isEqualByComparingTo(pastBalance);
-        verify(ledgerPort).getBalanceAsOf(walletId, pastTimestamp);
+        verify(ledgerPort).getBalanceAsOf(walletId.toString(), pastTimestamp);
     }
 
     @Test
@@ -236,7 +236,7 @@ class GetBalanceServiceTest {
         var command = new GetBalanceUseCase.Command(walletId, futureTimestamp);
 
         when(walletPort.findById(walletId)).thenReturn(Optional.of(wallet));
-        when(ledgerPort.getBalanceAsOf(walletId, futureTimestamp)).thenReturn(Optional.empty());
+        when(ledgerPort.getBalanceAsOf(walletId.toString(), futureTimestamp)).thenReturn(Optional.empty());
 
         // Act
         GetBalanceUseCase.Result result = getBalanceService.execute(command);
@@ -244,7 +244,7 @@ class GetBalanceServiceTest {
         // Assert
         assertThat(result).isNotNull();
         assertThat(result.balance()).isEqualByComparingTo(BigDecimal.ZERO);
-        verify(ledgerPort).getBalanceAsOf(walletId, futureTimestamp);
+        verify(ledgerPort).getBalanceAsOf(walletId.toString(), futureTimestamp);
     }
 
     @Test
@@ -253,13 +253,13 @@ class GetBalanceServiceTest {
         // Arrange - without timestamp
         var commandWithoutTimestamp = new GetBalanceUseCase.Command(walletId, null);
         when(walletPort.findById(walletId)).thenReturn(Optional.of(wallet));
-        when(ledgerPort.getCurrentBalance(walletId)).thenReturn(Optional.of(BigDecimal.TEN));
+        when(ledgerPort.getCurrentBalance(walletId.toString())).thenReturn(Optional.of(BigDecimal.TEN));
 
         // Act
         getBalanceService.execute(commandWithoutTimestamp);
 
         // Assert
-        verify(ledgerPort).getCurrentBalance(walletId);
+        verify(ledgerPort).getCurrentBalance(walletId.toString());
         verify(ledgerPort, never()).getBalanceAsOf(any(), any());
 
         // Reset mocks
@@ -269,13 +269,13 @@ class GetBalanceServiceTest {
         Instant timestamp = Instant.now();
         var commandWithTimestamp = new GetBalanceUseCase.Command(walletId, timestamp);
         when(walletPort.findById(walletId)).thenReturn(Optional.of(wallet));
-        when(ledgerPort.getBalanceAsOf(walletId, timestamp)).thenReturn(Optional.of(BigDecimal.TEN));
+        when(ledgerPort.getBalanceAsOf(walletId.toString(), timestamp)).thenReturn(Optional.of(BigDecimal.TEN));
 
         // Act
         getBalanceService.execute(commandWithTimestamp);
 
         // Assert
-        verify(ledgerPort).getBalanceAsOf(walletId, timestamp);
+        verify(ledgerPort).getBalanceAsOf(walletId.toString(), timestamp);
         verify(ledgerPort, never()).getCurrentBalance(any());
     }
 
@@ -287,7 +287,7 @@ class GetBalanceServiceTest {
         var command = new GetBalanceUseCase.Command(walletId, null);
 
         when(walletPort.findById(walletId)).thenReturn(Optional.of(wallet));
-        when(ledgerPort.getCurrentBalance(walletId)).thenReturn(Optional.of(preciseBalance));
+        when(ledgerPort.getCurrentBalance(walletId.toString())).thenReturn(Optional.of(preciseBalance));
 
         // Act
         GetBalanceUseCase.Result result = getBalanceService.execute(command);

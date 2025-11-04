@@ -25,12 +25,12 @@ public class GetBalanceService implements GetBalanceUseCase {
         .orElseThrow(() -> new IllegalArgumentException("Wallet not found"));
 
     if (command.at() != null) {
-      var balanceAsOf = ledgerPort.getBalanceAsOf(wallet.id(), command.at())
+      var balanceAsOf = ledgerPort.getBalanceAsOf(wallet.id().toString(), command.at())
           .orElse(BigDecimal.ZERO);
       return new Result(wallet.id(), balanceAsOf);
     }
 
-    var balance = ledgerPort.getCurrentBalance(wallet.id()).orElse(BigDecimal.ZERO);
+    var balance = ledgerPort.getCurrentBalance(wallet.id().toString()).orElse(BigDecimal.ZERO);
     return new Result(wallet.id(), balance);
   }
   

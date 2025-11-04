@@ -32,8 +32,8 @@ public interface TransferRepositoryPort {
     
     record TransferCommand(
         String endToEndId,
-        UUID fromWalletId,
-        UUID toWalletId,
+        String fromWalletId,
+        String toWalletId,
         java.math.BigDecimal amount,
         String currency,
         String status,
@@ -43,8 +43,8 @@ public interface TransferRepositoryPort {
     record TransferResult(
         UUID id,
         String endToEndId,
-        UUID fromWalletId,
-        UUID toWalletId,
+        String fromWalletId,
+        String toWalletId,
         java.math.BigDecimal amount,
         String currency,
         String status,

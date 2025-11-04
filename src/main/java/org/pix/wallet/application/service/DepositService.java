@@ -34,7 +34,7 @@ public class DepositService implements DepositUseCase {
             return new Result(wallet.id(), command.idempotencyKey());
         }
 
-        ledgerPort.deposit(wallet.id(), command.amount(), command.idempotencyKey());
+        ledgerPort.deposit(wallet.id().toString(), command.amount(), command.idempotencyKey());
 
         return new Result(wallet.id(), command.idempotencyKey());
     }

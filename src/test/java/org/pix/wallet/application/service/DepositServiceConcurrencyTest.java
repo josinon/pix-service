@@ -58,7 +58,7 @@ class DepositServiceConcurrencyTest {
         doAnswer(invocation -> {
             depositCallCount.incrementAndGet();
             return null;
-        }).when(ledgerPort).deposit(eq(walletId), eq(amount), eq(idempotencyKey));
+        }).when(ledgerPort).deposit(eq(walletId.toString()), eq(amount), eq(idempotencyKey));
 
         // Act
         ExecutorService executor = Executors.newFixedThreadPool(threadCount);
@@ -84,7 +84,7 @@ class DepositServiceConcurrencyTest {
 
         // Apenas 1 depósito persistido
         assertThat(depositCallCount.get()).isEqualTo(1);
-        verify(ledgerPort, times(1)).deposit(walletId, amount, idempotencyKey);
+        verify(ledgerPort, times(1)).deposit(walletId.toString(), amount, idempotencyKey);
     }
 
     @Test
@@ -121,6 +121,6 @@ class DepositServiceConcurrencyTest {
         }
 
         // Todos os 5 depósitos persistidos
-        verify(ledgerPort, times(threadCount)).deposit(eq(walletId), eq(amount), any());
+        verify(ledgerPort, times(threadCount)).deposit(eq(walletId.toString()), eq(amount), any());
     }
 }

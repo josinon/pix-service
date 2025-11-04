@@ -68,7 +68,7 @@ class WithdrawServiceTest {
 
         verify(walletPort).findById(walletId);
         verify(ledgerPort).existsByIdempotencyKey(idempotencyKey);
-        verify(ledgerPort).withdraw(walletId, amount, idempotencyKey);
+        verify(ledgerPort).withdraw(walletId.toString(), amount, idempotencyKey);
     }
 
     @Test
@@ -223,7 +223,7 @@ class WithdrawServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.walletId()).isEqualTo(walletId);
 
-        verify(ledgerPort).withdraw(walletId, amount, idempotencyKey);
+        verify(ledgerPort).withdraw(walletId.toString(), amount, idempotencyKey);
     }
 
     @Test
@@ -243,7 +243,7 @@ class WithdrawServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.walletId()).isEqualTo(walletId);
 
-        verify(ledgerPort).withdraw(walletId, amount, idempotencyKey);
+        verify(ledgerPort).withdraw(walletId.toString(), amount, idempotencyKey);
     }
 
     @Test
@@ -263,7 +263,7 @@ class WithdrawServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.walletId()).isEqualTo(walletId);
 
-        verify(ledgerPort).withdraw(walletId, amount, idempotencyKey);
+        verify(ledgerPort).withdraw(walletId.toString(), amount, idempotencyKey);
     }
 
     @Test
@@ -293,7 +293,7 @@ class WithdrawServiceTest {
 
         // Assert
         verify(ledgerPort).withdraw(
-                eq(walletId),
+                eq(walletId.toString()),
                 eq(amount),
                 eq(idempotencyKey)
         );

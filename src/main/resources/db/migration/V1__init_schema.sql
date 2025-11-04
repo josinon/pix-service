@@ -26,8 +26,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_pixkey_active ON pix_key (value)
 CREATE TABLE IF NOT EXISTS transfer (
   id               UUID PRIMARY KEY,
   end_to_end_id    TEXT NOT NULL UNIQUE,
-  from_wallet_id   UUID NOT NULL REFERENCES wallet(id),
-  to_wallet_id     UUID NOT NULL REFERENCES wallet(id),
+  from_wallet_id   TEXT NOT NULL,
+  to_wallet_id     TEXT NOT NULL,
   amount           NUMERIC(15,2) NOT NULL CHECK (amount > 0),
   currency         CHAR(3) NOT NULL,
   status           TEXT NOT NULL,   -- PENDING, CONFIRMED, REJECTED
@@ -63,24 +63,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_ledger_entry_idempotency_key ON ledger_entr
 CREATE INDEX IF NOT EXISTS ix_ledger_wallet_time ON ledger_entry(wallet_id, effective_at);
 CREATE INDEX IF NOT EXISTS ix_ledger_wallet ON ledger_entry(wallet_id);
 
--- 5) Saldo corrente (1 linha por carteira)
-CREATE TABLE IF NOT EXISTS wallet_balance (
-  wallet_id        UUID PRIMARY KEY REFERENCES wallet(id),
-  balance          NUMERIC(15,2) NOT NULL DEFAULT 0,
-  updated_at       TIMESTAMPTZ NOT NULL DEFAULT now()
-);
 
--- 6) Snapshots de saldo (para consultas históricas)
-CREATE TABLE IF NOT EXISTS balance_snapshot (
-  id               BIGSERIAL PRIMARY KEY,
-  wallet_id        UUID NOT NULL REFERENCES wallet(id),
-  as_of            TIMESTAMPTZ NOT NULL,
-  balance          NUMERIC(15,2) NOT NULL,
-  created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE (wallet_id, as_of)
-);
-
-CREATE INDEX IF NOT EXISTS ix_snapshot_wallet_time ON balance_snapshot(wallet_id, as_of);
 
 -- 7) Inbox de Webhook (robustez a duplicados/fora de ordem)
 CREATE TABLE IF NOT EXISTS webhook_inbox (

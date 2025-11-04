@@ -29,13 +29,11 @@ public class TransferEntity {
   @Column(name = "idempotency_key", nullable = false, unique = true, length = 64)
   private String idempotencyKey;
 
-  @ManyToOne(optional = false, fetch = FetchType.LAZY)
-  @JoinColumn(name = "from_wallet_id", nullable = false)
-  private WalletEntity fromWallet;
+  @Column(name = "from_wallet_id", nullable = true)
+  private String fromWallet;
 
-  @ManyToOne(optional = false, fetch = FetchType.LAZY)
-  @JoinColumn(name = "to_wallet_id", nullable = false)
-  private WalletEntity toWallet;
+  @Column(name = "to_wallet_id", nullable = false)
+  private String toWallet;
 
   @Column(name = "amount", nullable = false)
   private BigDecimal amount;

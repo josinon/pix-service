@@ -139,13 +139,5 @@ public class PixWebhookService implements ProcessPixWebhookUseCase {
         
         log.info("Debited {} from wallet {}", transfer.amount(), transfer.fromWalletId());
         
-        // Credit to destination wallet
-        ledgerEntryRepositoryPort.deposit(
-            transfer.toWalletId(), 
-            transfer.amount(), 
-            idempotencyKey + "-credit"
-        );
-        
-        log.info("Credited {} to wallet {}", transfer.amount(), transfer.toWalletId());
     }
 }

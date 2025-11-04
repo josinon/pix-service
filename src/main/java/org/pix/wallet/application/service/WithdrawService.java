@@ -33,7 +33,7 @@ public class WithdrawService implements WithdrawUseCase {
             return new Result(wallet.id(), command.idempotencyKey());
         }
 
-        ledgerPort.withdraw(wallet.id(), command.amount(), command.idempotencyKey());
+        ledgerPort.withdraw(wallet.id().toString(), command.amount(), command.idempotencyKey());
 
         return new Result(wallet.id(), command.idempotencyKey());
     }
