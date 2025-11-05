@@ -1,0 +1,213 @@
+{
+    "metrics": {
+        "http_req_duration{endpoint:transfer_create}": {
+            "min": 3.536,
+            "med": 4.8614999999999995,
+            "max": 110.506,
+            "p(90)": 7.232400000000001,
+            "p(95)": 8.6801,
+            "avg": 5.906056338028165,
+            "thresholds": {
+                "p(95)<300": false
+            }
+        },
+        "time_to_confirm": {
+            "avg": 27.385505787619525,
+            "min": 21,
+            "med": 25,
+            "max": 197,
+            "p(90)": 31,
+            "p(95)": 35,
+            "thresholds": {
+                "p(95)<2000": false
+            }
+        },
+        "checks": {
+            "passes": 7953,
+            "fails": 0,
+            "value": 1
+        },
+        "iteration_duration": {
+            "avg": 27.402642024660267,
+            "min": 21.485667,
+            "med": 25.201,
+            "max": 196.642708,
+            "p(90)": 31.431008,
+            "p(95)": 34.9340421
+        },
+        "http_req_duration": {
+            "max": 160.475,
+            "p(90)": 22.036200000000004,
+            "p(95)": 24.2535,
+            "avg": 13.382251822065829,
+            "min": 3.536,
+            "med": 17.52
+        },
+        "http_req_waiting": {
+            "avg": 13.272463684342766,
+            "min": 3.475,
+            "med": 17.449,
+            "max": 160.401,
+            "p(90)": 21.9114,
+            "p(95)": 24.1511
+        },
+        "webhook_5xx_rate": {
+            "passes": 0,
+            "fails": 0,
+            "thresholds": {
+                "rate<0.002": false
+            },
+            "value": 0
+        },
+        "http_req_blocked": {
+            "min": 0.001,
+            "med": 0.005,
+            "max": 3.194,
+            "p(90)": 0.01,
+            "p(95)": 0.013,
+            "avg": 0.013404121638602901
+        },
+        "http_req_receiving": {
+            "min": 0.011,
+            "med": 0.058,
+            "max": 13.531,
+            "p(90)": 0.094,
+            "p(95)": 0.126,
+            "avg": 0.07933701935159578
+        },
+        "http_req_failed": {
+            "passes": 0,
+            "fails": 3979,
+            "thresholds": {
+                "rate<0.005": false
+            },
+            "value": 0
+        },
+        "http_reqs": {
+            "rate": 58.648770935337645,
+            "count": 3979
+        },
+        "http_req_sending": {
+            "min": 0.008,
+            "med": 0.021,
+            "max": 5.085,
+            "p(90)": 0.046,
+            "p(95)": 0.053,
+            "avg": 0.030451118371450533
+        },
+        "data_received": {
+            "count": 754472,
+            "rate": 11120.597010587098
+        },
+        "http_req_tls_handshaking": {
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0,
+            "min": 0,
+            "med": 0,
+            "max": 0
+        },
+        "http_req_connecting": {
+            "min": 0,
+            "med": 0,
+            "max": 3.126,
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0.005287258105051519
+        },
+        "webhook_success_count": {
+            "count": 1987,
+            "rate": 29.28753652890573
+        },
+        "http_req_duration{expected_response:true}": {
+            "min": 3.536,
+            "med": 17.52,
+            "max": 160.475,
+            "p(90)": 22.036200000000004,
+            "p(95)": 24.2535,
+            "avg": 13.382251822065829
+        },
+        "iterations": {
+            "count": 1987,
+            "rate": 29.28753652890573
+        },
+        "data_sent": {
+            "count": 1547249,
+            "rate": 22805.793460902296
+        },
+        "vus": {
+            "value": 1,
+            "min": 0,
+            "max": 3
+        },
+        "vus_max": {
+            "value": 50,
+            "min": 50,
+            "max": 50
+        }
+    },
+    "setup_data": {
+        "pixKeyB": "e70f098fc9114b05a979b617d528af95",
+        "walletA": "357ac12b-5885-4343-9f62-34d16bd69a0e",
+        "walletB": "0a88acb8-8771-41c3-b78b-2451a112afc1"
+    },
+    "root_group": {
+        "checks": {
+            "transfer created 201": {
+                "id": "f29eaeaf1b401aa05721b49259f9f087",
+                "passes": 1988,
+                "fails": 0,
+                "name": "transfer created 201",
+                "path": "::transfer created 201"
+            },
+            "webhook ok 200": {
+                "passes": 3974,
+                "fails": 0,
+                "name": "webhook ok 200",
+                "path": "::webhook ok 200",
+                "id": "ecef71517e973a91f65e9e729c8f645e"
+            },
+            "transfer status returned": {
+                "name": "transfer status returned",
+                "path": "::transfer status returned",
+                "id": "3d438f2585037d92ff20e16422862c2f",
+                "passes": 1987,
+                "fails": 0
+            }
+        },
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {
+            "setup": {
+                "groups": {},
+                "checks": {
+                        "create wallet status 201": {
+                            "fails": 0,
+                            "name": "create wallet status 201",
+                            "path": "::setup::create wallet status 201",
+                            "id": "142d8470ccf82aa07435ca1e210182cc",
+                            "passes": 2
+                        },
+                        "pix key created 201": {
+                            "name": "pix key created 201",
+                            "path": "::setup::pix key created 201",
+                            "id": "5fe7abdff0d228d7aff412ed23f9ea26",
+                            "passes": 1,
+                            "fails": 0
+                        },
+                        "deposit ok 200": {
+                            "name": "deposit ok 200",
+                            "path": "::setup::deposit ok 200",
+                            "id": "00ed47aa23e9a7ece08ab097e062d79c",
+                            "passes": 1,
+                            "fails": 0
+                        }
+                    },
+                "name": "setup",
+                "path": "::setup",
+                "id": "5c0f8025f7e0b6654089e5b00e950f1a"
+            }
+        }
+    }
+}

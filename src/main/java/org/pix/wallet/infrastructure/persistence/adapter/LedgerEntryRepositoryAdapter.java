@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 import org.pix.wallet.application.port.out.LedgerEntryRepositoryPort;
+import org.pix.wallet.domain.exception.InsufficientFundsException;
 import org.pix.wallet.domain.model.enums.OperationType;
 import org.pix.wallet.infrastructure.persistence.entity.LedgerEntryEntity;
 import org.pix.wallet.infrastructure.persistence.entity.WalletEntity;
@@ -49,6 +50,16 @@ public class LedgerEntryRepositoryAdapter implements LedgerEntryRepositoryPort {
     public String withdraw(String walletId, BigDecimal amount, String idempotencyKey) {
         WalletEntity wallet = walletRepo.findById(UUID.fromString(walletId))
             .orElseThrow(() -> new IllegalArgumentException("Wallet not found"));
+
+        // Defensive balance check at repository level to avoid negative balance in case
+        // service-level validation was bypassed or concurrent race occurred between
+        // validation and persistence. This duplicates the domain rule intentionally
+        // to enforce invariant near the write boundary.
+        BigDecimal current = repo.findCurrentBalanceByWalletId(wallet.getId())
+            .orElse(BigDecimal.ZERO);
+        if (current.compareTo(amount) < 0) {
+            throw new InsufficientFundsException(current, amount);
+        }
 
         LedgerEntryEntity e = new LedgerEntryEntity();
         e.setId(UUID.randomUUID());

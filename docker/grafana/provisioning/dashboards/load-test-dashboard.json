@@ -1,0 +1,247 @@
+{
+  "id": null,
+  "title": "PIX Wallet Load Test",
+  "tags": ["load-test", "pix", "performance"],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "10s",
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Transfer Creation Rate (req/s)",
+      "id": 1,
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "rate(pix_transfers_created_total[1m])",
+          "legendFormat": "created",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(pix_transfers_confirmed_total[1m])",
+          "legendFormat": "confirmed",
+          "refId": "B"
+        },
+        {
+          "expr": "rate(pix_transfers_rejected_total[1m])",
+          "legendFormat": "rejected",
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Pending Transfers Gauge",
+      "id": 2,
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        { "expr": "pix_transfers_pending{status=\"pending\"}", "legendFormat": "pending", "refId": "A" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Transfer Creation Latency p95 / p99 (ms)",
+      "id": 3,
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(pix_transfer_creation_time_bucket[5m])) by (le)) * 1000",
+          "legendFormat": "p95",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(pix_transfer_creation_time_bucket[5m])) by (le)) * 1000",
+          "legendFormat": "p99",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "End-to-End Transfer Confirmation Time p95/p99 (ms)",
+      "id": 4,
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(pix_transfer_end_to_end_time_bucket[5m])) by (le)) * 1000",
+          "legendFormat": "e2e p95",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(pix_transfer_end_to_end_time_bucket[5m])) by (le)) * 1000",
+          "legendFormat": "e2e p99",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Webhook Processing Latency p95/p99 (ms)",
+      "id": 5,
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(pix_webhook_processing_time_bucket[5m])) by (le)) * 1000",
+          "legendFormat": "webhook p95",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(pix_webhook_processing_time_bucket[5m])) by (le)) * 1000",
+          "legendFormat": "webhook p99",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Success Ratio (Confirmed/Created)",
+      "id": 6,
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "(rate(pix_transfers_confirmed_total[5m]) / rate(pix_transfers_created_total[5m]))",
+          "legendFormat": "success ratio",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percentunit" } }
+    },
+    {
+      "type": "timeseries",
+      "title": "Wallets Active / Created",
+      "id": 7,
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        { "expr": "pix_wallets_active{status=\"active\"}", "legendFormat": "active", "refId": "A" },
+        { "expr": "rate(pix_wallets_created_total[5m])", "legendFormat": "created rate", "refId": "B" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "JVM Heap Usage (%)",
+      "id": 8,
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "(sum(jvm_memory_used_bytes{area=\"heap\"}) / sum(jvm_memory_max_bytes{area=\"heap\"}))",
+          "legendFormat": "heap usage",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percentunit" } }
+    },
+    {
+      "type": "timeseries",
+      "title": "Deposits vs Withdrawals Rate",
+      "id": 9,
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        { "expr": "rate(pix_deposits_completed_total[5m])", "legendFormat": "deposits", "refId": "A" },
+        { "expr": "rate(pix_withdrawals_completed_total[5m])", "legendFormat": "withdrawals", "refId": "B" }
+      ]
+    }
+    ,
+    {
+      "type": "timeseries",
+      "title": "HTTP 5xx Error Rate (%)",
+      "id": 10,
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "(sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[5m])) / sum(rate(http_server_requests_seconds_count[5m])))",
+          "legendFormat": "5xx ratio",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percentunit" } }
+    },
+    {
+      "type": "row",
+      "title": "Webhook Root Cause",
+      "id": 11,
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Webhook Requests by Status (rps)",
+      "id": 12,
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "sum(rate(http_server_requests_seconds_count{uri=\"/pix/webhook\",method=\"POST\"}[1m])) by (status)",
+          "legendFormat": "{{status}}",
+          "refId": "A"
+        }
+      ],
+      "options": { "legend": { "showLegend": true } },
+      "fieldConfig": { "defaults": { "unit": "req/s" } }
+    },
+    {
+      "type": "timeseries",
+      "title": "Webhook Error Rates (%)",
+      "id": 13,
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "(sum(rate(http_server_requests_seconds_count{uri=\"/pix/webhook\",method=\"POST\",status=~\"4..\"}[5m])) / sum(rate(http_server_requests_seconds_count{uri=\"/pix/webhook\",method=\"POST\"}[5m])))",
+          "legendFormat": "4xx rate",
+          "refId": "A"
+        },
+        {
+          "expr": "(sum(rate(http_server_requests_seconds_count{uri=\"/pix/webhook\",method=\"POST\",status=~\"5..\"}[5m])) / sum(rate(http_server_requests_seconds_count{uri=\"/pix/webhook\",method=\"POST\"}[5m])))",
+          "legendFormat": "5xx rate",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percentunit" } }
+    },
+    {
+      "type": "timeseries",
+      "title": "Webhook HTTP Latency p95 (ms)",
+      "id": 14,
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{uri=\"/pix/webhook\",method=\"POST\"}[5m])) by (le)) * 1000",
+          "legendFormat": "p95",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Webhook Status Breakdown (5m)",
+      "id": 15,
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "sum(rate(http_server_requests_seconds_count{uri=\"/pix/webhook\",method=\"POST\"}[5m])) by (status)",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "logs",
+      "title": "Webhook Error Logs (Loki)",
+      "id": 16,
+      "datasource": { "type": "loki", "uid": "Loki" },
+      "options": { "showTime": true, "wrapLogMessage": false },
+      "targets": [
+        {
+          "expr": "{container_name=\"pixwallet-app\"} |= \"/pix/webhook\" |= \"ERROR\"",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "title": "Notas de Diagnóstico Webhook",
+      "id": 17,
+      "options": { "mode": "markdown", "content": "### Como interpretar\n- **404 altos**: webhook chegou antes da transferência estar visível (race).\n- **4xx com INVALID_TRANSFER_STATUS_TRANSITION**: múltiplas confirmações concorrentes ou estado já finalizado.\n- **5xx**: exceção servidor / contenção. Ver logs acima.\n- Use k6 com `--summary-export` para correlacionar `webhook_error_code_count` se estiver enviando métricas externamente.\n- Ajustar sampling: `FAIL_SAMPLE_PCT=20` para mais detalhes no console k6." }
+    }
+  ],
+  "templating": { "list": [] },
+  "annotations": { "list": [] }
+}
