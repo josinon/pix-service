@@ -27,6 +27,14 @@ management:
           include: db,diskSpace
         liveness:
           include: ping
+  # Distributed Tracing Configuration
+  tracing:
+    sampling:
+      probability: 1.0  # 100% sampling for development (adjust to 0.1-0.3 in production)
+  otlp:
+    tracing:
+      endpoint: http://localhost:4318/v1/traces
+      compression: gzip
 
 logging:
   level:

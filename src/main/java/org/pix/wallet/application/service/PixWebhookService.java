@@ -9,6 +9,7 @@ import org.pix.wallet.application.port.out.WebhookInboxRepositoryPort;
 import org.pix.wallet.domain.validator.TransferValidator;
 import org.pix.wallet.infrastructure.observability.ObservabilityContext;
 import org.pix.wallet.infrastructure.observability.MetricsService;
+import org.pix.wallet.infrastructure.observability.Traced;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,6 +43,7 @@ public class PixWebhookService implements ProcessPixWebhookUseCase {
     }
     
     @Override
+    @Traced(operation = "pix.webhook.process", description = "Process PIX webhook")
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public void execute(Command command) {
         // Set observability context

@@ -11,6 +11,7 @@ import org.pix.wallet.application.port.out.WalletRepositoryPort;
 import org.pix.wallet.domain.model.PixKey;
 import org.pix.wallet.infrastructure.observability.ObservabilityContext;
 import org.pix.wallet.infrastructure.observability.MetricsService;
+import org.pix.wallet.infrastructure.observability.Traced;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +33,7 @@ public class PixTransferService implements ProcessPixTransferUseCase {
     private final MetricsService metricsService;
     
     @Override
+    @Traced(operation = "pix.transfer.create", description = "Create PIX transfer")
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public Result execute(Command command) {
         // Set observability context
