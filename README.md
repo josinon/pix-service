@@ -350,8 +350,8 @@ POST /api/v1/wallet/{id}/withdraw
 POST /api/v1/pix/transfers
 POST /api/v1/pix/webhook
 ```
-Swagger: `/swagger-ui.html` | OpenAPI: `/v3/api-docs`
-Actuator: `/actuator/health`, `/actuator/prometheus`
+Swagger: http://localhost:8080/swagger-ui.html | OpenAPI: http://localhost:8080/v3/api-docs
+Actuator: http://localhost:8080/actuator/health, http://localhost:8080/actuator/prometheus
 
 ---
 
