@@ -14,10 +14,7 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Global exception handler for REST controllers.
- * Centralizes error handling and provides consistent error responses.
- */
+/** Global exception handler providing consistent error payloads. */
 @Slf4j
 @RestControllerAdvice
 public class RestExceptionHandler {
@@ -133,9 +130,6 @@ public class RestExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
     }
     
-    /**
-     * Standard error response format
-     */
     public record ErrorResponse(
         String code,
         String message,

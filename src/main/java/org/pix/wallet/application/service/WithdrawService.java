@@ -28,22 +28,17 @@ public class WithdrawService implements WithdrawUseCase {
    @Override
     @Transactional
     public Result execute(Command command) {
-        // Validations using centralized validator
         validator.validateAmount(command.amount());
         validator.validateIdempotencyKey(command.idempotencyKey());
         
         Wallet wallet = validator.validateAndGetActiveWallet(command.walletId());
 
-        // Idempotency shortcut
         if (ledgerPort.existsByIdempotencyKey(command.idempotencyKey())) {
             return new Result(wallet.id(), command.idempotencyKey());
         }
 
-        // Business rule: no overdraft
-    // Ensure sufficient funds (returns current balance for potential future metrics/logs)
-    fundsValidator.ensureSufficientFunds(wallet.id(), command.amount());
+        fundsValidator.ensureSufficientFunds(wallet.id(), command.amount());
 
-        // Execute withdraw (will persist ledger entry)
         ledgerPort.withdraw(wallet.id().toString(), command.amount(), command.idempotencyKey());
         
         metricsService.recordWithdrawalCompleted();

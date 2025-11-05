@@ -47,15 +47,12 @@ public class PixWebhookService implements ProcessPixWebhookUseCase {
     @Traced(operation = "pix.webhook.process", description = "Process PIX webhook")
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public void execute(Command command) {
-        // Set observability context
         ObservabilityContext.setOperation("PIX_WEBHOOK_PROCESS");
         ObservabilityContext.setEndToEndId(command.endToEndId());
         ObservabilityContext.setEventId(command.eventId());
         
-        // Start metrics timer
         Timer.Sample metricsTimer = metricsService.startWebhookProcessing();
         
-        // Record webhook received
         metricsService.recordWebhookReceived(command.eventType());
         
         try {
@@ -65,7 +62,6 @@ public class PixWebhookService implements ProcessPixWebhookUseCase {
                      kv("eventType", command.eventType()),
                      kv("occurredAt", command.occurredAt()));
             
-            // 1. Validations using domain validator
             transferValidator.validateWebhookEvent(
                 command.endToEndId(), 
                 command.eventId(), 
@@ -76,7 +72,6 @@ public class PixWebhookService implements ProcessPixWebhookUseCase {
             log.debug("Webhook validation passed", 
                       kv("eventType", command.eventType()));
             
-            // 2. Check idempotency by eventId - if already processed, return/ignore
             if (webhookInboxRepositoryPort.existsByEventId(command.eventId())) {
                 log.info("Webhook already processed (idempotency check)", 
                          kv("eventId", command.eventId()),
@@ -87,7 +82,6 @@ public class PixWebhookService implements ProcessPixWebhookUseCase {
                 return;
             }
             
-            // 3. Find transfer by endToEndId
             TransferRepositoryPort.TransferResult transfer = transferRepositoryPort.findByEndToEndId(command.endToEndId())
                 .orElseThrow(() -> {
                     log.error("Transfer not found for webhook", 
@@ -97,7 +91,6 @@ public class PixWebhookService implements ProcessPixWebhookUseCase {
                     return new IllegalArgumentException("Transfer not found: " + command.endToEndId());
                 });
             
-            // Add transfer context to MDC
             ObservabilityContext.setWalletId(UUID.fromString(transfer.fromWalletId()));
             
             log.info("Transfer found for webhook", 
@@ -108,10 +101,8 @@ public class PixWebhookService implements ProcessPixWebhookUseCase {
                      kv("amount", transfer.amount()),
                      kv("version", transfer.version()));
             
-            // 4. Process webhook based on eventType
             String newStatus = processWebhookEvent(command.eventType(), transfer);
             
-            // 5. Update transfer status (with optimistic locking)
             try {
                 transferRepositoryPort.updateStatus(command.endToEndId(), newStatus, transfer.version());
                 log.info("Transfer status updated", 
@@ -142,7 +133,6 @@ public class PixWebhookService implements ProcessPixWebhookUseCase {
                 throw new RuntimeException("Failed to update transfer status", e);
             }
             
-            // 6. Save webhook event to inbox table
             var webhookEvent = new WebhookInboxRepositoryPort.WebhookEvent(
                 UUID.randomUUID(),
                 command.endToEndId(),
@@ -154,7 +144,6 @@ public class PixWebhookService implements ProcessPixWebhookUseCase {
             
             webhookInboxRepositoryPort.save(webhookEvent);
             
-            // Record successful webhook processing
             metricsService.recordWebhookProcessing(metricsTimer);
             
             log.info("PIX webhook processed successfully", 
@@ -164,7 +153,6 @@ public class PixWebhookService implements ProcessPixWebhookUseCase {
                      kv("eventType", command.eventType()));
             
         } catch (IllegalArgumentException | IllegalStateException e) {
-            // Business validation errors - already logged above
             String errorType = determineWebhookErrorType(e);
             metricsService.recordWebhookProcessingError(metricsTimer, errorType);
             throw e;
@@ -178,7 +166,6 @@ public class PixWebhookService implements ProcessPixWebhookUseCase {
             metricsService.recordWebhookProcessingError(metricsTimer, "unexpected_error");
             throw new RuntimeException("Failed to process PIX webhook", e);
         } finally {
-            // Clear observability context
             ObservabilityContext.clear();
         }
     }

@@ -37,11 +37,9 @@ public class PixTransferService implements ProcessPixTransferUseCase {
     @Traced(operation = "pix.transfer.create", description = "Create PIX transfer")
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public Result execute(Command command) {
-        // Set observability context
         ObservabilityContext.setOperation("PIX_TRANSFER_CREATE");
         ObservabilityContext.setWalletId(UUID.fromString(command.fromWalletId()));
         
-        // Start metrics timer
         Timer.Sample metricsTimer = metricsService.startTransferCreation();
         
         try {
@@ -51,10 +49,8 @@ public class PixTransferService implements ProcessPixTransferUseCase {
                      kv("amount", command.amount()),
                      kv("idempotencyKey", command.idempotencyKey()));
             
-            // 1. Validations
             validateCommand(command);
             
-            // 2. Check idempotency - if already processed, return existing result
             if (transferRepositoryPort.existsByIdempotencyKey(command.idempotencyKey())) {
                 log.info("Transfer already processed (idempotency check)", 
                          kv("idempotencyKey", command.idempotencyKey()),
@@ -63,7 +59,6 @@ public class PixTransferService implements ProcessPixTransferUseCase {
                 var existingTransfer = transferRepositoryPort.findByIdempotencyKey(command.idempotencyKey())
                     .orElseThrow(() -> new IllegalStateException("Transfer exists but not found"));
                 
-                // Add existing transfer context
                 ObservabilityContext.setEndToEndId(existingTransfer.endToEndId());
                 
                 log.debug("Returning existing transfer", 
@@ -73,7 +68,6 @@ public class PixTransferService implements ProcessPixTransferUseCase {
                 return new Result(existingTransfer.endToEndId(), existingTransfer.status());
             }
             
-            // 3. Validate source wallet exists and is active
             var sourceWallet = walletRepositoryPort.findById(UUID.fromString(command.fromWalletId()))
                 .orElseThrow(() -> {
                     log.error("Source wallet not found", 
@@ -86,7 +80,6 @@ public class PixTransferService implements ProcessPixTransferUseCase {
                       kv("walletId", sourceWallet.id()),
                       kv("walletStatus", "active"));
             
-            // 4. Resolve PIX key to destination wallet
             PixKey pixKey = pixKeyRepositoryPort.findByValueAndActive(command.toPixKey())
                 .orElseThrow(() -> {
                     log.error("PIX key not found or inactive", 
@@ -100,7 +93,6 @@ public class PixTransferService implements ProcessPixTransferUseCase {
                       kv("pixKeyType", pixKey.type()),
                       kv("destinationWallet", pixKey.walletId()));
             
-            // 5. Validate destination wallet exists
             var destinationWallet = walletRepositoryPort.findById(pixKey.walletId())
                 .orElseThrow(() -> {
                     log.error("Destination wallet not found for PIX key", 
@@ -110,7 +102,6 @@ public class PixTransferService implements ProcessPixTransferUseCase {
                     return new IllegalArgumentException("Destination wallet not found for PIX key: " + command.toPixKey());
                 });
             
-            // 6. Validate not transferring to the same wallet
             if (sourceWallet.id().equals(destinationWallet.id())) {
                 log.error("Attempt to transfer to same wallet", 
                           kv("walletId", sourceWallet.id()),
@@ -122,7 +113,6 @@ public class PixTransferService implements ProcessPixTransferUseCase {
                       kv("destinationWallet", destinationWallet.id()),
                       kv("differentWallets", true));
             
-            // 7. Validate source wallet has sufficient balance
             BigDecimal currentBalance = fundsValidator.ensureSufficientFunds(UUID.fromString(command.fromWalletId()), command.amount());
             
             log.debug("Balance validated", 
@@ -130,14 +120,12 @@ public class PixTransferService implements ProcessPixTransferUseCase {
                       kv("transferAmount", command.amount()),
                       kv("remainingBalance", currentBalance.subtract(command.amount())));
             
-            // 8. Generate unique endToEndId (E + 32 chars)
             String endToEndId = generateEndToEndId();
             ObservabilityContext.setEndToEndId(endToEndId);
             
             log.debug("Generated End-to-End ID", 
                       kv("endToEndId", endToEndId));
             
-            // 9. Create transfer record with PENDING status
             var transferCommand = new TransferRepositoryPort.TransferCommand(
                 endToEndId,
                 command.fromWalletId(),
@@ -150,7 +138,6 @@ public class PixTransferService implements ProcessPixTransferUseCase {
             
             TransferRepositoryPort.TransferResult transfer = transferRepositoryPort.save(transferCommand);
             
-            // Record metrics
             metricsService.recordTransferCreated();
             metricsService.recordTransferCreation(metricsTimer);
             
@@ -162,8 +149,7 @@ public class PixTransferService implements ProcessPixTransferUseCase {
                      kv("amount", transfer.amount()),
                      kv("currency", transfer.currency()));
             
-            // Note: Actual debit/credit will be done when webhook confirms the transfer
-            // This follows the eventual consistency pattern for PIX transfers
+            // Debit/Credit occurs asynchronously on webhook confirmation (eventual consistency)
             
             return new Result(transfer.endToEndId(), transfer.status());
             
