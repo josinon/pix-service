@@ -45,6 +45,9 @@ public class PixTransferServiceTest {
     @Mock
     private LedgerEntryRepositoryPort ledgerEntryRepositoryPort;
 
+    @Mock
+    private org.pix.wallet.infrastructure.observability.MetricsService metricsService;
+
     @InjectMocks
     private PixTransferService pixTransferService;
 

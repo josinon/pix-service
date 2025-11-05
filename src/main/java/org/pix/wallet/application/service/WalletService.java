@@ -7,6 +7,7 @@ import org.pix.wallet.application.port.in.CreateWalletUseCase;
 import org.pix.wallet.application.port.out.WalletRepositoryPort;
 import org.pix.wallet.domain.model.Wallet;
 import org.pix.wallet.domain.model.enums.WalletStatus;
+import org.pix.wallet.infrastructure.observability.MetricsService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,9 +17,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class WalletService implements CreateWalletUseCase {
 
     private final WalletRepositoryPort walletRepository;
+    private final MetricsService metricsService;
 
-    public WalletService(WalletRepositoryPort walletRepository) {
+    public WalletService(WalletRepositoryPort walletRepository, MetricsService metricsService) {
         this.walletRepository = walletRepository;
+        this.metricsService = metricsService;
     }
 
     @Override
@@ -28,7 +31,13 @@ public class WalletService implements CreateWalletUseCase {
         .status(WalletStatus.ACTIVE)
         .createdAt(Instant.now())
         .build();
-        return walletRepository.save(wallet);
+        
+        Wallet savedWallet = walletRepository.save(wallet);
+        
+        // Record metric
+        metricsService.recordWalletCreated();
+        
+        return savedWallet;
     }
 
 

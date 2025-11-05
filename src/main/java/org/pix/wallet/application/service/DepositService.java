@@ -4,6 +4,7 @@ package org.pix.wallet.application.service;
 import org.pix.wallet.application.port.in.DepositUseCase;
 import org.pix.wallet.application.port.out.LedgerEntryRepositoryPort;
 import org.pix.wallet.domain.model.Wallet;
+import org.pix.wallet.infrastructure.observability.MetricsService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,11 +13,14 @@ public class DepositService implements DepositUseCase {
 
     private final WalletOperationValidator validator;
     private final LedgerEntryRepositoryPort ledgerPort;
+    private final MetricsService metricsService;
 
     public DepositService(WalletOperationValidator validator,
-                          LedgerEntryRepositoryPort ledgerPort) {
+                          LedgerEntryRepositoryPort ledgerPort,
+                          MetricsService metricsService) {
         this.validator = validator;
         this.ledgerPort = ledgerPort;
+        this.metricsService = metricsService;
     }
 
    @Override
@@ -35,6 +39,8 @@ public class DepositService implements DepositUseCase {
 
         // Execute deposit
         ledgerPort.deposit(wallet.id().toString(), command.amount(), command.idempotencyKey());
+        
+        metricsService.recordDepositCompleted();
 
         return new Result(wallet.id(), command.idempotencyKey());
     }

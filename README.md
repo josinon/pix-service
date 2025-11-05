@@ -381,38 +381,191 @@ src/test/java/
 
 ## 📊 Observabilidade
 
-O projeto implementa **full observability stack** com os **3 pilares**:
+O projeto implementa **full observability stack** com os **3 pilares de observabilidade** e foco especial em **rastreamento de fluxos assíncronos PIX**:
 
-### 1. Métricas (Prometheus + Grafana)
+### 🎯 Arquitetura de Observabilidade
 
-**Prometheus** coleta métricas da aplicação via `/actuator/prometheus`:
-- Taxa de requisições (throughput)
-- Latência (p50, p95, p99)
-- Uso de memória/CPU
-- Métricas de JVM
-- Métricas de banco de dados
-
-**Acessar Prometheus**: http://localhost:9090
-
-**Grafana** visualiza as métricas em dashboards:
-- Dashboard de aplicação
-- Dashboard de banco de dados PostgreSQL
-
-**Acessar Grafana**: http://localhost:3000 (admin/admin)
-
-### 2. Logs
-
-Logs estruturados via **SLF4J + Logback**:
-- Níveis: INFO, WARN, ERROR
-- Contexto de transação
-- Correlação de requests
-
-**Ver logs da aplicação**:
-```bash
-docker-compose logs -f app
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     Application Layer                       │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐   │
+│  │   Logs   │  │ Metrics  │  │  Traces  │  │   MDC    │   │
+│  │  (JSON)  │  │(Micrometer)│ │ (OTEL)   │  │(Context) │   │
+│  └─────┬────┘  └─────┬────┘  └─────┬────┘  └─────┬────┘   │
+└────────┼─────────────┼─────────────┼─────────────┼─────────┘
+         │             │             │             │
+         ▼             ▼             ▼             ▼
+         Loki       Prometheus       Tempo       Grafana
 ```
 
-### 3. Tracing (Tempo + OpenTelemetry)
+### 📌 Sprints de Observabilidade
+
+O projeto seguiu um roadmap estruturado de 8 fases para implementação completa de observabilidade:
+
+- ✅ **Sprint 1: Logs Estruturados + Correlation ID** - [CONCLUÍDO]
+- ✅ **Sprint 2: Métricas Customizadas** - [CONCLUÍDO]
+- ⏳ **Sprint 3: Distributed Tracing** - [Próximo]
+- ⏳ **Sprint 4: Loki Integration** - [Planejado]
+- ⏳ **Sprint 5: Dashboards e Alertas** - [Planejado]
+
+📖 **Documentação Completa**: 
+- Plano Geral: [`docs/OBSERVABILITY_PLAN.md`](docs/OBSERVABILITY_PLAN.md)
+- Sprint 1: [`docs/OBSERVABILITY_SPRINT1.md`](docs/OBSERVABILITY_SPRINT1.md)
+- Sprint 2: [`docs/OBSERVABILITY_SPRINT2.md`](docs/OBSERVABILITY_SPRINT2.md)
+- **Guia de Métricas**: [`docs/METRICS_GUIDE.md`](docs/METRICS_GUIDE.md) ⭐
+
+### 1. 📝 Logs Estruturados (JSON)
+
+**Implementação:** Logback + Logstash Encoder
+
+#### Características:
+- ✅ Logs em formato JSON para facilitar parsing e queries
+- ✅ Correlation ID automático em todas as requisições HTTP
+- ✅ MDC (Mapped Diagnostic Context) com campos de negócio:
+  - `correlationId` - ID único da requisição HTTP
+  - `operation` - Nome da operação (ex: PIX_TRANSFER_CREATE)
+  - `transferId` - UUID da transferência PIX
+  - `endToEndId` - ID E2E da transação PIX (**chave para correlação assíncrona**)
+  - `walletId` - UUID da carteira
+  - `eventId` - ID do evento de webhook
+- ✅ Integração com OpenTelemetry: `trace_id` e `span_id` incluídos automaticamente
+
+#### Exemplo de Log JSON:
+```json
+{
+  "timestamp": "2025-11-04T21:30:00.123Z",
+  "level": "INFO",
+  "correlationId": "abc-123-def",
+  "operation": "PIX_TRANSFER_CREATE",
+  "walletId": "wallet-uuid-789",
+  "endToEndId": "E123ABC456",
+  "transferId": "transfer-uuid-456",
+  "trace_id": "trace-xyz-999",
+  "span_id": "span-001",
+  "message": "PIX transfer created successfully",
+  "fromWallet": "wallet-uuid-789",
+  "toWallet": "wallet-uuid-999",
+  "amount": 100.00,
+  "status": "PENDING"
+}
+```
+
+#### Rastreamento de Fluxo Assíncrono PIX:
+
+O sistema permite rastrear toda a jornada de uma transferência PIX desde a criação até a confirmação via webhook:
+
+**1. Criação da Transferência (Síncrona):**
+```json
+// POST /pix/transfers
+{
+  "correlationId": "corr-abc-123",
+  "operation": "PIX_TRANSFER_CREATE",
+  "endToEndId": "E123ABC456",
+  "message": "PIX transfer created successfully",
+  "status": "PENDING"
+}
+```
+
+**2. Processamento do Webhook (Assíncrona):**
+```json
+// POST /pix/webhook (seconds/minutes later)
+{
+  "correlationId": "corr-webhook-999",  // Diferente (nova requisição)
+  "operation": "PIX_WEBHOOK_PROCESS",
+  "endToEndId": "E123ABC456",            // MESMO! (correlação)
+  "eventId": "evt-confirm-123",
+  "message": "PIX webhook processed successfully",
+  "finalStatus": "CONFIRMED"
+}
+```
+
+**Query para rastrear transferência completa (Loki):**
+```logql
+{app="pixwallet"} | json | endToEndId="E123ABC456"
+```
+
+### 2. 📊 Métricas Customizadas (Micrometer + Prometheus)
+
+**✅ Sprint 2 - COMPLETO**
+
+O sistema implementa **15+ métricas customizadas** para monitorar saúde, performance e negócio:
+
+#### 📈 Métricas Implementadas
+
+##### Transferências PIX (6 métricas):
+- `pix.transfers.created` (Counter) - Total de transferências criadas
+- `pix.transfers.confirmed` (Counter) - Total confirmadas via webhook
+- `pix.transfers.rejected` (Counter) - Total rejeitadas
+- `pix.transfers.pending` (Gauge) - **Número atual de pendentes** ⚠️
+- `pix.transfer.creation.time` (Timer) - Latência de criação (p50/p95/p99)
+- `pix.transfer.end_to_end.time` (Timer) - SLA end-to-end (criação → confirmação)
+
+##### Webhooks (4 métricas):
+- `pix.webhooks.received` (Counter) - Total de webhooks recebidos
+- `pix.webhooks.duplicated` (Counter) - Detecções de idempotência
+- `pix.webhooks.by_type` (Counter) - Por tipo de evento (CONFIRMED/REJECTED)
+- `pix.webhook.processing.time` (Timer) - Latência de processamento
+
+##### Carteiras e Chaves PIX (4 métricas):
+- `pix.wallets.created` (Counter) - Total de carteiras criadas
+- `pix.wallets.active` (Gauge) - Carteiras ativas no momento
+- `pix.pixkeys.registered` (Counter) - Total de chaves PIX
+- `pix.pixkeys.by_type` (Counter) - Por tipo (CPF/EMAIL/PHONE/RANDOM)
+
+##### Transações (2 métricas):
+- `pix.deposits.completed` (Counter) - Depósitos completados
+- `pix.withdrawals.completed` (Counter) - Saques completados
+
+#### 🔍 Métricas Críticas
+
+**Indicadores de Saúde:**
+```promql
+# Transferências pendentes (deve ser baixo)
+pix_transfers_pending
+
+# Taxa de sucesso (deve ser > 95%)
+pix_transfers_confirmed_total / pix_transfers_created_total
+```
+
+**Performance (SLA):**
+```promql
+# P95 de criação (deve ser < 500ms)
+histogram_quantile(0.95, rate(pix_transfer_creation_time_seconds_bucket[5m]))
+
+# P95 end-to-end (deve ser < 5s)
+histogram_quantile(0.95, rate(pix_transfer_end_to_end_time_seconds_bucket[5m]))
+```
+
+**Detecção de Problemas:**
+```promql
+# Top 3 erros mais comuns
+topk(3, sum by (error_type) (rate(pix_transfer_creation_errors_total[10m])))
+
+# Taxa de webhooks duplicados (deve ser < 10%)
+pix_webhooks_duplicated_total / pix_webhooks_received_total
+```
+
+#### 📊 Acessar Métricas
+
+**Prometheus Endpoint:**
+```bash
+# Ver todas as métricas PIX
+curl http://localhost:8080/actuator/prometheus | grep pix
+```
+
+**Prometheus UI:** http://localhost:9090
+
+**Grafana:** http://localhost:3000 (admin/admin)
+
+📖 **Guia Completo de Métricas**: [`docs/METRICS_GUIDE.md`](docs/METRICS_GUIDE.md) - Inclui:
+- Descrição detalhada de cada métrica
+- Valor de negócio
+- Queries Prometheus prontas
+- Alertas recomendados (thresholds)
+- Cenários de troubleshooting
+- Dashboards sugeridos
+
+### 3. 🔍 Distributed Tracing (Tempo + OpenTelemetry)
 
 **Distributed Tracing** para rastreamento de requisições:
 - OpenTelemetry Collector captura traces
@@ -429,6 +582,47 @@ docker-compose logs -f app
 2. Menu → Explore
 3. Data Source → Tempo
 4. Query → Search traces
+
+### 📖 Documentação de Observabilidade
+
+Para mais detalhes sobre a implementação de observabilidade:
+
+- **Plano Completo:** [`docs/OBSERVABILITY_PLAN.md`](docs/OBSERVABILITY_PLAN.md)
+- **Sprint 1 (Logs):** [`docs/OBSERVABILITY_SPRINT1.md`](docs/OBSERVABILITY_SPRINT1.md)
+
+#### Componentes Implementados:
+
+**Sprint 1 - Logs Estruturados:**
+
+| Componente | Arquivo | Descrição |
+|------------|---------|-----------|
+| **CorrelationIdFilter** | `infrastructure/config/CorrelationIdFilter.java` | Gera/propaga Correlation IDs via header `X-Correlation-ID` |
+| **ObservabilityContext** | `infrastructure/observability/ObservabilityContext.java` | Utilitário MDC para contexto de negócio |
+| **Logback Config** | `resources/logback-spring.xml` | Configuração de logs estruturados JSON |
+
+**Sprint 2 - Métricas Customizadas:**
+
+| Componente | Arquivo | Descrição |
+|------------|---------|-----------|
+| **MetricsService** | `infrastructure/observability/MetricsService.java` | Serviço centralizado com 15+ métricas customizadas |
+| **Instrumentação** | Todos os services (Transfer, Webhook, Wallet, PixKey, Deposit, Withdraw) | Métricas integradas em todos os fluxos críticos |
+
+#### Queries Úteis:
+
+**Buscar logs de uma transferência:**
+```logql
+{app="pixwallet"} | json | endToEndId="E123ABC456"
+```
+
+**Buscar erros em webhooks:**
+```logql
+{app="pixwallet"} | json | operation="PIX_WEBHOOK_PROCESS" | level="ERROR"
+```
+
+**Buscar requisições duplicadas:**
+```logql
+{app="pixwallet"} | json | reason="duplicate_request"
+```
 
 ---
 
@@ -571,8 +765,8 @@ docker run -p 8080:8080 \
 
 ## 📈 Métricas de Qualidade
 
-- ✅ **Cobertura de Código**: **72%** (meta: 70%, JaCoCo)
-- ✅ **Testes Unitários**: 129 testes
+- ✅ **Cobertura de Código**: **60%** (meta: 60%, JaCoCo)
+- ✅ **Testes Unitários**: 154 testes (incluindo 25 testes do MetricsService)
 - ✅ **Testes de Integração**: 17 cenários
 - ✅ **Testes de Validação**: 40 testes (96% cobertura)
 - ✅ **Testes de Concorrência**: Validação de race conditions
@@ -580,6 +774,7 @@ docker run -p 8080:8080 \
 - ✅ **SOLID**: Princípios aplicados
 - ✅ **DRY**: Reutilização de código (ValidationConstants)
 - ✅ **Validação em Camadas**: Presentation → Application → Domain
+- ✅ **Observabilidade**: Logs estruturados + Métricas customizadas (Sprint 2)
 
 ---
 

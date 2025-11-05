@@ -6,6 +6,7 @@ import org.pix.wallet.application.port.out.LedgerEntryRepositoryPort;
 import org.pix.wallet.application.port.out.WalletRepositoryPort;
 import org.pix.wallet.domain.model.Wallet;
 import org.pix.wallet.domain.model.enums.WalletStatus;
+import org.pix.wallet.infrastructure.observability.MetricsService;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -19,8 +20,9 @@ class DepositServiceTest {
 
     WalletRepositoryPort walletPort = mock(WalletRepositoryPort.class);
     LedgerEntryRepositoryPort ledgerPort = mock(LedgerEntryRepositoryPort.class);
+    MetricsService metricsService = mock(MetricsService.class);
     WalletOperationValidator validator = new WalletOperationValidator(walletPort);
-    DepositService service = new DepositService(validator, ledgerPort);
+    DepositService service = new DepositService(validator, ledgerPort, metricsService);
 
     UUID wid = UUID.randomUUID();
 

@@ -8,6 +8,7 @@ import org.pix.wallet.application.port.out.WalletRepositoryPort;
 import org.pix.wallet.domain.model.Wallet;
 import org.pix.wallet.domain.model.enums.WalletStatus;
 import org.pix.wallet.domain.validator.PixKeyValidator;
+import org.pix.wallet.infrastructure.observability.MetricsService;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -20,8 +21,9 @@ class PixKeyServiceValidationTest {
 
     WalletRepositoryPort walletPort = mock(WalletRepositoryPort.class);
     PixKeyRepositoryPort pixPort = mock(PixKeyRepositoryPort.class);
+    MetricsService metricsService = mock(MetricsService.class);
     PixKeyValidator pixKeyValidator = new PixKeyValidator(); // Use real validator
-    PixKeyService service = new PixKeyService(walletPort, pixPort, pixKeyValidator);
+    PixKeyService service = new PixKeyService(walletPort, pixPort, pixKeyValidator, metricsService);
     UUID walletId = UUID.randomUUID();
 
     @BeforeEach

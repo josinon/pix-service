@@ -8,6 +8,7 @@ import org.pix.wallet.application.port.out.LedgerEntryRepositoryPort;
 import org.pix.wallet.application.port.out.WalletRepositoryPort;
 import org.pix.wallet.domain.model.Wallet;
 import org.pix.wallet.domain.model.enums.WalletStatus;
+import org.pix.wallet.infrastructure.observability.MetricsService;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -25,8 +26,9 @@ class WithdrawServiceTest {
 
     private WalletRepositoryPort walletPort = mock(WalletRepositoryPort.class);
     private LedgerEntryRepositoryPort ledgerPort = mock(LedgerEntryRepositoryPort.class);
+    private MetricsService metricsService = mock(MetricsService.class);
     private WalletOperationValidator validator = new WalletOperationValidator(walletPort);
-    private WithdrawService withdrawService = new WithdrawService(validator, ledgerPort);
+    private WithdrawService withdrawService = new WithdrawService(validator, ledgerPort, metricsService);
 
     private UUID walletId;
     private Wallet wallet;

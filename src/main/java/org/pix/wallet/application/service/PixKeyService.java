@@ -12,6 +12,7 @@ import org.pix.wallet.domain.model.Wallet;
 import org.pix.wallet.domain.model.enums.PixKeyStatus;
 import org.pix.wallet.domain.model.enums.PixKeyType;
 import org.pix.wallet.domain.validator.PixKeyValidator;
+import org.pix.wallet.infrastructure.observability.MetricsService;
 
 @Service
 public class PixKeyService implements CreatePixKeyUseCase {
@@ -19,14 +20,17 @@ public class PixKeyService implements CreatePixKeyUseCase {
     private final WalletRepositoryPort walletPort;
     private final PixKeyRepositoryPort pixKeyPort;
     private final PixKeyValidator pixKeyValidator;
+    private final MetricsService metricsService;
 
     public PixKeyService(
             WalletRepositoryPort walletPort, 
             PixKeyRepositoryPort pixKeyPort,
-            PixKeyValidator pixKeyValidator) {
+            PixKeyValidator pixKeyValidator,
+            MetricsService metricsService) {
         this.walletPort = walletPort;
         this.pixKeyPort = pixKeyPort;
         this.pixKeyValidator = pixKeyValidator;
+        this.metricsService = metricsService;
     }
 
     @Override
@@ -42,6 +46,10 @@ public class PixKeyService implements CreatePixKeyUseCase {
         
         PixKey key = new PixKey(UUID.randomUUID(), wallet.id(), type, value, PixKeyStatus.ACTIVE, OffsetDateTime.now());
         PixKey saved = pixKeyPort.save(key);
+        
+        // Record metric
+        metricsService.recordPixKeyRegistered(type.name());
+        
         return new CreatePixKeyResult(saved.id(), saved.type().name(), saved.value(), saved.status().name());
     }
 }
