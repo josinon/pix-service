@@ -3,9 +3,32 @@ package org.pix.wallet.domain.validator;
 import org.pix.wallet.domain.model.enums.PixKeyType;
 import org.springframework.stereotype.Component;
 
+import static org.pix.wallet.domain.validator.ValidationConstants.Messages.*;
+import static org.pix.wallet.domain.validator.ValidationConstants.PixKey.*;
+
 /**
  * Domain validator for PIX key validation rules.
- * Centralizes all PIX key format validation logic.
+ * 
+ * <p>Centralizes all PIX key format validation logic according to Brazilian
+ * Central Bank PIX specifications. Validates the following key types:</p>
+ * 
+ * <ul>
+ *   <li><b>CPF:</b> Exactly 11 digits (e.g., "12345678901")</li>
+ *   <li><b>EMAIL:</b> Valid email format, max 120 characters (e.g., "user@example.com")</li>
+ *   <li><b>PHONE:</b> International format +[11-14 digits] (e.g., "+5511999999999")</li>
+ *   <li><b>RANDOM:</b> 32 hexadecimal characters, UUID without hyphens (e.g., "a1b2c3d4...")</li>
+ * </ul>
+ * 
+ * <p><b>Usage Example:</b></p>
+ * <pre>
+ * PixKeyValidator validator = new PixKeyValidator();
+ * validator.validate(PixKeyType.CPF, "12345678901");
+ * String randomKey = validator.normalizeAndGenerate(PixKeyType.RANDOM, null);
+ * </pre>
+ * 
+ * @author PIX Wallet Team
+ * @since 1.0
+ * @see PixKeyType
  */
 @Component
 public class PixKeyValidator {
@@ -15,15 +38,15 @@ public class PixKeyValidator {
      * 
      * @param type The PIX key type (CPF, EMAIL, PHONE, RANDOM)
      * @param value The PIX key value to validate
-     * @throws IllegalArgumentException if validation fails
+     * @throws IllegalArgumentException if validation fails with descriptive error message
      */
     public void validate(PixKeyType type, String value) {
         if (type == null) {
-            throw new IllegalArgumentException("PIX key type is required");
+            throw new IllegalArgumentException(PIX_KEY_TYPE_REQUIRED);
         }
         
         if (value == null) {
-            throw new IllegalArgumentException("PIX key value is required");
+            throw new IllegalArgumentException(PIX_KEY_VALUE_REQUIRED);
         }
         
         switch (type) {
@@ -31,54 +54,78 @@ public class PixKeyValidator {
             case EMAIL -> validateEmail(value);
             case PHONE -> validatePhone(value);
             case RANDOM -> validateRandom(value);
-            default -> throw new IllegalArgumentException("Unsupported PIX key type: " + type);
+            default -> throw new IllegalArgumentException(String.format(PIX_KEY_TYPE_UNSUPPORTED, type));
         }
     }
     
     /**
      * Validates CPF format (11 digits).
+     * 
+     * @param cpf The CPF value to validate
+     * @throws IllegalArgumentException if CPF doesn't match expected format
      */
     private void validateCPF(String cpf) {
-        if (!cpf.matches("\\d{11}")) {
-            throw new IllegalArgumentException("Invalid CPF format. Expected 11 digits, got: " + cpf);
+        if (!cpf.matches(CPF_PATTERN)) {
+            throw new IllegalArgumentException(String.format(CPF_INVALID_FORMAT, cpf));
         }
     }
     
     /**
-     * Validates email format (basic pattern).
+     * Validates email format (basic pattern + length check).
+     * 
+     * @param email The email value to validate
+     * @throws IllegalArgumentException if email format is invalid or too long
      */
     private void validateEmail(String email) {
-        if (!email.matches(".+@.+\\..+")) {
-            throw new IllegalArgumentException("Invalid email format: " + email);
+        if (!email.matches(EMAIL_PATTERN)) {
+            throw new IllegalArgumentException(String.format(EMAIL_INVALID_FORMAT, email));
         }
         
-        if (email.length() > 120) {
-            throw new IllegalArgumentException("Email too long. Maximum 120 characters");
+        if (email.length() > EMAIL_MAX_LENGTH) {
+            throw new IllegalArgumentException(EMAIL_TOO_LONG);
         }
     }
     
     /**
      * Validates phone format (international format with +).
+     * 
+     * @param phone The phone value to validate
+     * @throws IllegalArgumentException if phone doesn't match expected format
      */
     private void validatePhone(String phone) {
-        if (!phone.matches("\\+\\d{11,14}")) {
-            throw new IllegalArgumentException("Invalid phone format. Expected: +[11-14 digits], got: " + phone);
+        if (!phone.matches(PHONE_PATTERN)) {
+            throw new IllegalArgumentException(String.format(PHONE_INVALID_FORMAT, phone));
         }
     }
     
     /**
-     * Validates random PIX key (32 alphanumeric characters without hyphens).
+     * Validates random PIX key (32 hexadecimal characters without hyphens).
+     * 
+     * @param random The random key value to validate
+     * @throws IllegalArgumentException if random key format is invalid
      */
     private void validateRandom(String random) {
-        if (!random.matches("[a-f0-9]{32}")) {
-            throw new IllegalArgumentException("Invalid random PIX key format. Expected 32 hexadecimal characters");
+        if (!random.matches(RANDOM_PATTERN)) {
+            throw new IllegalArgumentException(RANDOM_KEY_INVALID_FORMAT);
         }
     }
     
     /**
      * Normalizes and generates PIX key value based on type.
-     * For RANDOM type, generates a new UUID-based key.
-     * For other types, trims and returns the value.
+     * 
+     * <p>For RANDOM type, generates a new UUID-based key (32 hex chars).
+     * For other types, trims whitespace and returns the value.</p>
+     * 
+     * <p><b>Example:</b></p>
+     * <pre>
+     * // Generates new random key
+     * String key = normalizeAndGenerate(PixKeyType.RANDOM, null);
+     * // Returns: "a1b2c3d4e5f6789..." (32 chars)
+     * 
+     * // Normalizes existing value
+     * String email = normalizeAndGenerate(PixKeyType.EMAIL, "  user@example.com  ");
+     * // Returns: "user@example.com"
+     * </pre>
      * 
      * @param type The PIX key type
      * @param value The input value (can be null for RANDOM)

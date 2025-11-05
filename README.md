@@ -15,6 +15,7 @@ Sistema de carteira digital PIX desenvolvido com Spring Boot, seguindo princípi
 - [Visão Geral](#-visão-geral)
 - [Tecnologias Utilizadas](#-tecnologias-utilizadas)
 - [Arquitetura](#-arquitetura)
+  - [Arquitetura de Validação](#-arquitetura-de-validação)
 - [Funcionalidades](#-funcionalidades)
 - [Pré-requisitos](#-pré-requisitos)
 - [Como Executar](#-como-executar)
@@ -128,8 +129,9 @@ O projeto segue os princípios de **Clean Architecture** e **Hexagonal Architect
 - **Responsabilidade**: Interface HTTP REST
 - **Componentes**:
   - `WalletController`: Endpoints da API
-  - DTOs: Requests e Responses
+  - DTOs: Requests e Responses (Java Records)
   - `GlobalExceptionHandler`: Tratamento centralizado de erros
+- **Validação**: Bean Validation (`@NotNull`, `@NotBlank`)
 
 #### 2. **Application Layer** (`application/`)
 - **Responsabilidade**: Casos de uso e lógica de aplicação
@@ -137,12 +139,15 @@ O projeto segue os princípios de **Clean Architecture** e **Hexagonal Architect
   - `port.in`: Interfaces de casos de uso (Use Cases)
   - `service`: Implementação dos casos de uso
   - Exemplos: `DepositService`, `WithdrawService`, `GetBalanceService`
+- **Validação**: Idempotência e coordenação entre agregados
 
 #### 3. **Domain Layer** (`domain/`)
 - **Responsabilidade**: Regras de negócio puras
 - **Componentes**:
   - `model`: Entidades de domínio (`Wallet`, `PixKey`)
   - `enums`: Tipos do domínio (`OperationType`, `PixKeyStatus`)
+  - **`validator`**: Validadores de regras de negócio (`PixKeyValidator`, `TransferValidator`)
+- **Validação**: Formatos PIX, limites de transferência, tipos de evento
 
 #### 4. **Infrastructure Layer** (`infrastructure/`)
 - **Responsabilidade**: Detalhes técnicos e frameworks
@@ -151,6 +156,48 @@ O projeto segue os princípios de **Clean Architecture** e **Hexagonal Architect
   - `persistence.repository`: Repositórios Spring Data
   - `persistence.adapter`: Adaptadores de porta
   - `config`: Configurações (OpenAPI, etc)
+
+### 🔐 Arquitetura de Validação
+
+O projeto implementa **validação em 3 camadas** para garantir qualidade e consistência dos dados:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  Presentation: Bean Validation (@NotNull, @NotBlank)   │
+│  → Valida sintaxe e presença de campos                 │
+└────────────────────┬────────────────────────────────────┘
+                     ↓
+┌─────────────────────────────────────────────────────────┐
+│  Application: WalletOperationValidator                  │
+│  → Valida idempotência e coordenação entre agregados   │
+└────────────────────┬────────────────────────────────────┘
+                     ↓
+┌─────────────────────────────────────────────────────────┐
+│  Domain: PixKeyValidator + TransferValidator            │
+│  → Valida regras de negócio do domínio PIX             │
+└─────────────────────────────────────────────────────────┘
+```
+
+#### Validadores de Domínio
+
+**PixKeyValidator** - Valida formatos de chaves PIX:
+- ✅ CPF: 11 dígitos
+- ✅ Email: formato válido, max 120 caracteres
+- ✅ Phone: formato internacional `+[11-14 dígitos]`
+- ✅ Random: 32 caracteres hexadecimais (UUID sem hífens)
+
+**TransferValidator** - Valida regras de transferência:
+- ✅ Valor > R$ 0,00 e ≤ R$ 100.000,00
+- ✅ Carteira origem ≠ Carteira destino
+- ✅ Timestamp do webhook não pode ser futuro
+- ✅ Tipos de evento: `CONFIRMED`, `REJECTED`, `PENDING`
+
+**ValidationConstants** - Centraliza constantes de validação:
+- ✅ Padrões regex (CPF, Email, Phone, Random)
+- ✅ Limites de valores (max transfer amount)
+- ✅ Mensagens de erro consistentes
+
+📖 **Documentação Completa**: [Arquitetura de Validação](docs/VALIDATION_ARCHITECTURE.md)
 
 ---
 
@@ -309,17 +356,26 @@ src/test/java/
 │   ├── WithdrawServiceTest
 │   ├── GetBalanceServiceTest
 │   └── DepositServiceConcurrencyTest
+├── domain/validator/             # Testes de validadores de domínio
+│   ├── PixKeyValidatorTest       # 17 testes (96% cobertura)
+│   └── TransferValidatorTest     # 23 testes (96% cobertura)
 ├── integration/                  # Testes de integração (IT)
 │   ├── DepositIT
 │   ├── WalletCreationIT
 │   └── DepositConcurrentIT
 ├── presentation/api/             # Testes de controllers
 │   ├── WalletControllerTest
-│   └── WalletControllerDepositTest
+│   ├── WalletControllerValidationTest
+│   └── PixControllerValidationTest
 └── config/                       # Configurações de teste
     ├── IntegrationTest           # Anotação customizada
     └── TestContainersConfig      # Config do Testcontainers
 ```
+
+**Cobertura de Validadores:**
+- `PixKeyValidator`: **96%** (17 testes)
+- `TransferValidator`: **96%** (23 testes)
+- Total: 40 testes unitários de validação
 
 ---
 
@@ -424,13 +480,17 @@ pix-service/
 │   │   │   │   │   └── in/                      # Use Cases (interfaces)
 │   │   │   │   └── service/                     # Implementação dos Use Cases
 │   │   │   ├── domain/                          # Camada de domínio
-│   │   │   │   └── model/                       # Entidades e Value Objects
+│   │   │   │   ├── model/                       # Entidades e Value Objects
+│   │   │   │   └── validator/                   # 🆕 Validadores de regras de negócio
+│   │   │   │       ├── PixKeyValidator.java
+│   │   │   │       ├── TransferValidator.java
+│   │   │   │       └── ValidationConstants.java
 │   │   │   ├── infrastructure/                  # Camada de infraestrutura
 │   │   │   │   ├── config/                      # Configurações
 │   │   │   │   └── persistence/                 # JPA, Repositories, Adapters
 │   │   │   └── presentation/                    # Camada de apresentação
 │   │   │       ├── api/                         # Controllers REST
-│   │   │       └── dto/                         # Request/Response DTOs
+│   │   │       └── dto/                         # Request/Response DTOs (Records)
 │   │   └── resources/
 │   │       ├── application.yml                  # Config principal
 │   │       ├── application-local.yml            # Config ambiente local
@@ -440,9 +500,12 @@ pix-service/
 │   └── test/
 │       └── java/org/pix/wallet/
 │           ├── application/service/             # Testes unitários
+│           ├── domain/validator/                # 🆕 Testes de validadores (40 testes)
 │           ├── integration/                     # Testes de integração
 │           ├── presentation/api/                # Testes de controllers
 │           └── config/                          # Configs de teste
+├── docs/                                        # 🆕 Documentação
+│   └── VALIDATION_ARCHITECTURE.md              # Arquitetura de validação
 ├── docker/                                      # Configurações Docker
 │   ├── grafana/provisioning/                   # Datasources e dashboards
 │   ├── otel/collector-config.yml               # OpenTelemetry config
@@ -508,13 +571,15 @@ docker run -p 8080:8080 \
 
 ## 📈 Métricas de Qualidade
 
-- ✅ **Cobertura de Código**: Mínimo 70% (JaCoCo)
-- ✅ **Testes Unitários**: 100+ testes
-- ✅ **Testes de Integração**: 10+ cenários
+- ✅ **Cobertura de Código**: **72%** (meta: 70%, JaCoCo)
+- ✅ **Testes Unitários**: 129 testes
+- ✅ **Testes de Integração**: 17 cenários
+- ✅ **Testes de Validação**: 40 testes (96% cobertura)
 - ✅ **Testes de Concorrência**: Validação de race conditions
-- ✅ **Clean Code**: Separação de camadas
+- ✅ **Clean Architecture**: Separação clara de camadas
 - ✅ **SOLID**: Princípios aplicados
-- ✅ **DRY**: Reutilização de código
+- ✅ **DRY**: Reutilização de código (ValidationConstants)
+- ✅ **Validação em Camadas**: Presentation → Application → Domain
 
 ---
 
