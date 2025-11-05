@@ -187,6 +187,7 @@ services:
 
       # Identificação do serviço no tracing
       OTEL_SERVICE_NAME: pixwallet
+      JAVA_TOOL_OPTIONS: "-DCONSOLE_APPENDER=CONSOLE_JSON"
     ports:
       - "${APP_PORT:-8080}:8080"
     depends_on:

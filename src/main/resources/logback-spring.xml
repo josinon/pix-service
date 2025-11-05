@@ -23,8 +23,9 @@
             <includeMdcKeyName>operation</includeMdcKeyName>
             
             <!-- Incluir trace IDs do OpenTelemetry -->
-            <includeMdcKeyName>trace_id</includeMdcKeyName>
-            <includeMdcKeyName>span_id</includeMdcKeyName>
+            <!-- Micrometer Tracing/OTel geralmente popula camelCase (traceId/spanId). Mantemos os dois para compatibilidade -->
+            <includeMdcKeyName>traceId</includeMdcKeyName>
+            <includeMdcKeyName>spanId</includeMdcKeyName>
             
             <!-- Stack trace formatado -->
             <throwableConverter class="net.logstash.logback.stacktrace.ShortenedThrowableConverter">
@@ -39,7 +40,8 @@
     <!-- Console Appender - Legível para desenvolvimento -->
     <appender name="CONSOLE_PRETTY" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%clr(%d{yyyy-MM-dd'T'HH:mm:ss.SSS}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr([%X{correlationId}]){cyan} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}</pattern>
+            <!-- Inclui traceId/spanId no layout legível para facilitar a identificação no stdout/local -->
+            <pattern>%clr(%d{yyyy-MM-dd'T'HH:mm:ss.SSS}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr([corr=%X{correlationId} trace=%X{traceId:-%X{trace_id}} span=%X{spanId:-%X{span_id}}]){yellow} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}</pattern>
             <charset>UTF-8</charset>
         </encoder>
     </appender>
@@ -61,8 +63,8 @@
             <includeMdcKeyName>walletId</includeMdcKeyName>
             <includeMdcKeyName>eventId</includeMdcKeyName>
             <includeMdcKeyName>operation</includeMdcKeyName>
-            <includeMdcKeyName>trace_id</includeMdcKeyName>
-            <includeMdcKeyName>span_id</includeMdcKeyName>
+            <includeMdcKeyName>traceId</includeMdcKeyName>
+            <includeMdcKeyName>spanId</includeMdcKeyName>
         </encoder>
     </appender>
     
