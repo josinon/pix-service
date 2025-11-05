@@ -3,6 +3,7 @@ package org.pix.wallet.infrastructure.config;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.pix.wallet.domain.exception.InsufficientFundsException;
+import org.pix.wallet.domain.exception.InvalidTransferStatusTransitionException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
@@ -54,6 +55,18 @@ public class RestExceptionHandler {
         log.warn("Insufficient funds: {}", ex.getMessage());
         ErrorResponse error = new ErrorResponse(
             "INSUFFICIENT_FUNDS",
+            ex.getMessage(),
+            HttpStatus.CONFLICT.value(),
+            Instant.now()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
+    @ExceptionHandler(InvalidTransferStatusTransitionException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidTransferStatus(InvalidTransferStatusTransitionException ex) {
+        log.warn("Invalid transfer status transition: {}", ex.getMessage());
+        ErrorResponse error = new ErrorResponse(
+            "INVALID_TRANSFER_STATUS_TRANSITION",
             ex.getMessage(),
             HttpStatus.CONFLICT.value(),
             Instant.now()

@@ -71,9 +71,10 @@ class PixWebhookIT {
 
         String confirmEventId = "evt-confirm2-" + UUID.randomUUID();
         ResponseEntity<String> confirmResp = helper.sendWebhook(endToEnd, confirmEventId, "CONFIRMED");
-        assertEquals(200, confirmResp.getStatusCode().value());
-        var confirmed = transferRepositoryPort.findByEndToEndId(endToEnd).orElseThrow();
-        assertEquals("CONFIRMED", confirmed.status());
+        // After business rule change, REJECTED -> CONFIRMED is invalid and should return 409
+        assertEquals(409, confirmResp.getStatusCode().value());
+        var stillRejected = transferRepositoryPort.findByEndToEndId(endToEnd).orElseThrow();
+        assertEquals("REJECTED", stillRejected.status());
     }
 
     @Test

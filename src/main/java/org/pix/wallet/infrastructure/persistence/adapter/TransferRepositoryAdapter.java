@@ -3,6 +3,7 @@ package org.pix.wallet.infrastructure.persistence.adapter;
 import lombok.RequiredArgsConstructor;
 import org.pix.wallet.application.port.out.TransferRepositoryPort;
 import org.pix.wallet.domain.model.enums.TransferStatus;
+import org.pix.wallet.domain.validator.TransferStatusTransitionValidator;
 import org.pix.wallet.infrastructure.persistence.entity.TransferEntity;
 import org.pix.wallet.infrastructure.persistence.repository.TransferJpaRepository;
 import org.springframework.stereotype.Component;
@@ -15,6 +16,7 @@ import java.util.Optional;
 public class TransferRepositoryAdapter implements TransferRepositoryPort {
 
     private final TransferJpaRepository transferJpaRepository;
+    private final TransferStatusTransitionValidator transferStatusTransitionValidator;
 
     @Override
     public boolean existsByIdempotencyKey(String idempotencyKey) {
@@ -58,7 +60,10 @@ public class TransferRepositoryAdapter implements TransferRepositoryPort {
             throw new IllegalStateException("Transfer version mismatch - concurrent modification detected");
         }
         
-        entity.setStatus(TransferStatus.valueOf(status));
+        TransferStatus current = entity.getStatus();
+        TransferStatus target = TransferStatus.valueOf(status);
+        transferStatusTransitionValidator.validate(current, target);
+        entity.setStatus(target);
         transferJpaRepository.save(entity);
     }
 

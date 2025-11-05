@@ -8,6 +8,7 @@ import org.pix.wallet.application.port.out.TransferRepositoryPort;
 import org.pix.wallet.application.port.out.WebhookInboxRepositoryPort;
 import org.pix.wallet.domain.validator.TransferValidator;
 import org.pix.wallet.infrastructure.observability.ObservabilityContext;
+import org.pix.wallet.domain.exception.InvalidTransferStatusTransitionException;
 import org.pix.wallet.infrastructure.observability.MetricsService;
 import org.pix.wallet.infrastructure.observability.Traced;
 import org.springframework.stereotype.Service;
@@ -118,13 +119,27 @@ public class PixWebhookService implements ProcessPixWebhookUseCase {
                          kv("oldStatus", transfer.status()),
                          kv("newStatus", newStatus),
                          kv("version", transfer.version()));
-            } catch (Exception e) {
-                log.error("Failed to update transfer status (concurrent modification)", 
+            } catch (InvalidTransferStatusTransitionException e) {
+                log.warn("Invalid status transition", 
+                         kv("endToEndId", command.endToEndId()),
+                         kv("currentStatus", transfer.status()),
+                         kv("attemptedStatus", newStatus),
+                         kv("errorType", "invalid_transition"));
+                throw e; // propagate for handler (409)
+            } catch (IllegalStateException e) {
+                // Version mismatch or other state error
+                log.error("State error updating transfer status", 
                           kv("endToEndId", command.endToEndId()),
                           kv("expectedVersion", transfer.version()),
                           kv("errorType", "optimistic_lock_failure"),
                           kv("errorMessage", e.getMessage()));
-                throw new IllegalStateException("Transfer was modified by another process", e);
+                throw e;
+            } catch (Exception e) {
+                log.error("Unexpected failure updating transfer status", 
+                          kv("endToEndId", command.endToEndId()),
+                          kv("errorType", "unexpected_error"),
+                          kv("errorMessage", e.getMessage()));
+                throw new RuntimeException("Failed to update transfer status", e);
             }
             
             // 6. Save webhook event to inbox table
