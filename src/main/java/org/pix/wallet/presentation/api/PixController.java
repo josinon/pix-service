@@ -27,12 +27,12 @@ public class PixController {
             @Valid @RequestBody PixTransferRequest request) {
         
         log.info("Creating PIX transfer from wallet {} to PIX key {} with idempotency key {}", 
-                 request.getFromWalletId(), request.getToPixKey(), idempotencyKey);
+                 request.fromWalletId(), request.toPixKey(), idempotencyKey);
         
         var command = new ProcessPixTransferUseCase.Command(
-            request.getFromWalletId().toString(),
-            request.getToPixKey(),
-            request.getAmount(),
+            request.fromWalletId().toString(),
+            request.toPixKey(),
+            request.amount(),
             idempotencyKey
         );
         
@@ -50,13 +50,13 @@ public class PixController {
     public ResponseEntity<Void> receiveWebhook(@Valid @RequestBody PixWebhookRequest request) {
         
         log.info("Received PIX webhook - endToEndId: {}, eventId: {}, eventType: {}", 
-                 request.getEndToEndId(), request.getEventId(), request.getEventType());
+                 request.endToEndId(), request.eventId(), request.eventType());
         
         var command = new ProcessPixWebhookUseCase.Command(
-            request.getEndToEndId(),
-            request.getEventId(),
-            request.getEventType(),
-            request.getOccurredAt()
+            request.endToEndId(),
+            request.eventId(),
+            request.eventType(),
+            request.occurredAt()
         );
         
         processPixWebhookUseCase.execute(command);

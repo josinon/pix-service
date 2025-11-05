@@ -1,11 +1,11 @@
 package org.pix.wallet.application.service;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.pix.wallet.application.port.in.ProcessPixWebhookUseCase;
 import org.pix.wallet.application.port.out.LedgerEntryRepositoryPort;
 import org.pix.wallet.application.port.out.TransferRepositoryPort;
 import org.pix.wallet.application.port.out.WebhookInboxRepositoryPort;
+import org.pix.wallet.domain.validator.TransferValidator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,12 +15,23 @@ import java.util.UUID;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class PixWebhookService implements ProcessPixWebhookUseCase {
 
     private final WebhookInboxRepositoryPort webhookInboxRepositoryPort;
     private final TransferRepositoryPort transferRepositoryPort;
     private final LedgerEntryRepositoryPort ledgerEntryRepositoryPort;
+    private final TransferValidator transferValidator;
+    
+    public PixWebhookService(
+            WebhookInboxRepositoryPort webhookInboxRepositoryPort,
+            TransferRepositoryPort transferRepositoryPort,
+            LedgerEntryRepositoryPort ledgerEntryRepositoryPort,
+            TransferValidator transferValidator) {
+        this.webhookInboxRepositoryPort = webhookInboxRepositoryPort;
+        this.transferRepositoryPort = transferRepositoryPort;
+        this.ledgerEntryRepositoryPort = ledgerEntryRepositoryPort;
+        this.transferValidator = transferValidator;
+    }
     
     @Override
     @Transactional(isolation = Isolation.READ_COMMITTED)
@@ -28,8 +39,13 @@ public class PixWebhookService implements ProcessPixWebhookUseCase {
         log.info("Processing PIX webhook - endToEndId: {}, eventId: {}, eventType: {}, occurredAt: {}", 
                  command.endToEndId(), command.eventId(), command.eventType(), command.occurredAt());
         
-        // 1. Validations
-        validateCommand(command);
+        // 1. Validations using domain validator
+        transferValidator.validateWebhookEvent(
+            command.endToEndId(), 
+            command.eventId(), 
+            command.eventType(), 
+            command.occurredAt()
+        );
         
         // 2. Check idempotency by eventId - if already processed, return/ignore
         if (webhookInboxRepositoryPort.existsByEventId(command.eventId())) {
@@ -71,24 +87,6 @@ public class PixWebhookService implements ProcessPixWebhookUseCase {
         
         log.info("PIX webhook processed successfully - eventId: {}, endToEndId: {}, newStatus: {}", 
                  command.eventId(), command.endToEndId(), newStatus);
-    }
-    
-    private void validateCommand(Command command) {
-        if (command.eventId() == null || command.eventId().isBlank()) {
-            throw new IllegalArgumentException("Event ID is required");
-        }
-        
-        if (command.endToEndId() == null || command.endToEndId().isBlank()) {
-            throw new IllegalArgumentException("End to end ID is required");
-        }
-        
-        if (command.eventType() == null || command.eventType().isBlank()) {
-            throw new IllegalArgumentException("Event type is required");
-        }
-        
-        if (command.occurredAt() == null) {
-            throw new IllegalArgumentException("Occurred at is required");
-        }
     }
     
     private String processWebhookEvent(String eventType, TransferRepositoryPort.TransferResult transfer) {

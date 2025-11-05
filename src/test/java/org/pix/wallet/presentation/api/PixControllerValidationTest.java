@@ -40,12 +40,11 @@ class PixControllerValidationTest {
     @Test
     @DisplayName("Should return 400 when Idempotency-Key header is missing on PIX transfer")
     void shouldReturn400WhenIdempotencyKeyMissingOnPixTransfer() throws Exception {
-        UUID walletId = UUID.randomUUID();
-        PixTransferRequest request = PixTransferRequest.builder()
-                .fromWalletId(UUID.randomUUID())
-                .toPixKey("12345678901")
-                .amount(BigDecimal.valueOf(100))
-                .build();
+        PixTransferRequest request = new PixTransferRequest(
+                UUID.randomUUID(),
+                "12345678901",
+                BigDecimal.valueOf(100)
+        );
 
         mockMvc.perform(post("/pix/transfers")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -57,12 +56,11 @@ class PixControllerValidationTest {
     @Test
     @DisplayName("Should return 400 when PIX transfer amount is null")
     void shouldReturn400WhenPixTransferAmountIsNull() throws Exception {
-        UUID walletId = UUID.randomUUID();
-        PixTransferRequest request = PixTransferRequest.builder()
-                .fromWalletId(UUID.randomUUID())
-                .toPixKey("12345678901")
-                .amount(null)
-                .build();
+        PixTransferRequest request = new PixTransferRequest(
+                UUID.randomUUID(),
+                "12345678901",
+                null
+        );
 
         mockMvc.perform(post("/pix/transfers")
                         .header("Idempotency-Key", "key-transfer-123")
@@ -75,12 +73,11 @@ class PixControllerValidationTest {
     @Test
     @DisplayName("Should return 400 when PIX transfer amount is zero")
     void shouldReturn400WhenPixTransferAmountIsZero() throws Exception {
-        UUID walletId = UUID.randomUUID();
-        PixTransferRequest request = PixTransferRequest.builder()
-                .fromWalletId(UUID.randomUUID())
-                .toPixKey("12345678901")
-                .amount(BigDecimal.ZERO)
-                .build();
+        PixTransferRequest request = new PixTransferRequest(
+                UUID.randomUUID(),
+                "12345678901",
+                BigDecimal.ZERO
+        );
 
         mockMvc.perform(post("/pix/transfers")
                         .header("Idempotency-Key", "key-transfer-123")
@@ -93,12 +90,11 @@ class PixControllerValidationTest {
     @Test
     @DisplayName("Should return 400 when PIX transfer amount is negative")
     void shouldReturn400WhenPixTransferAmountIsNegative() throws Exception {
-        UUID walletId = UUID.randomUUID();
-        PixTransferRequest request = PixTransferRequest.builder()
-                .fromWalletId(UUID.randomUUID())
-                .toPixKey("12345678901")
-                .amount(BigDecimal.valueOf(-50))
-                .build();
+        PixTransferRequest request = new PixTransferRequest(
+                UUID.randomUUID(),
+                "12345678901",
+                BigDecimal.valueOf(-50)
+        );
 
         mockMvc.perform(post("/pix/transfers")
                         .header("Idempotency-Key", "key-transfer-123")
@@ -111,12 +107,11 @@ class PixControllerValidationTest {
     @Test
     @DisplayName("Should return 400 when PIX transfer destinationPixKey is null")
     void shouldReturn400WhenPixTransferDestinationPixKeyIsNull() throws Exception {
-        UUID walletId = UUID.randomUUID();
-        PixTransferRequest request = PixTransferRequest.builder()
-                .fromWalletId(UUID.randomUUID())
-                .toPixKey(null)
-                .amount(BigDecimal.valueOf(100))
-                .build();
+        PixTransferRequest request = new PixTransferRequest(
+                UUID.randomUUID(),
+                null,
+                BigDecimal.valueOf(100)
+        );
 
         mockMvc.perform(post("/pix/transfers")
                         .header("Idempotency-Key", "key-transfer-123")
@@ -129,12 +124,11 @@ class PixControllerValidationTest {
     @Test
     @DisplayName("Should return 400 when PIX transfer destinationPixKey is blank")
     void shouldReturn400WhenPixTransferDestinationPixKeyIsBlank() throws Exception {
-        UUID walletId = UUID.randomUUID();
-        PixTransferRequest request = PixTransferRequest.builder()
-                .fromWalletId(UUID.randomUUID())
-                .toPixKey("   ")
-                .amount(BigDecimal.valueOf(100))
-                .build();
+        PixTransferRequest request = new PixTransferRequest(
+                UUID.randomUUID(),
+                "   ",
+                BigDecimal.valueOf(100)
+        );
 
         mockMvc.perform(post("/pix/transfers")
                         .header("Idempotency-Key", "key-transfer-123")
@@ -147,12 +141,12 @@ class PixControllerValidationTest {
     @Test
     @DisplayName("Should return 400 when webhook endToEndId is null")
     void shouldReturn400WhenWebhookEndToEndIdIsNull() throws Exception {
-        PixWebhookRequest request = PixWebhookRequest.builder()
-                .endToEndId(null)
-                .eventId("evt-123")
-                .eventType("CONFIRMED")
-                .occurredAt(Instant.now())
-                .build();
+        PixWebhookRequest request = new PixWebhookRequest(
+                null,
+                "evt-123",
+                "CONFIRMED",
+                Instant.now()
+        );
 
         mockMvc.perform(post("/pix/webhook")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -164,12 +158,12 @@ class PixControllerValidationTest {
     @Test
     @DisplayName("Should return 400 when webhook eventId is null")
     void shouldReturn400WhenWebhookEventIdIsNull() throws Exception {
-        PixWebhookRequest request = PixWebhookRequest.builder()
-                .endToEndId("E12345678901234567890123456789012")
-                .eventId(null)
-                .eventType("CONFIRMED")
-                .occurredAt(Instant.now())
-                .build();
+        PixWebhookRequest request = new PixWebhookRequest(
+                "E12345678901234567890123456789012",
+                null,
+                "CONFIRMED",
+                Instant.now()
+        );
 
         mockMvc.perform(post("/pix/webhook")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -181,12 +175,12 @@ class PixControllerValidationTest {
     @Test
     @DisplayName("Should return 400 when webhook eventType is null")
     void shouldReturn400WhenWebhookEventTypeIsNull() throws Exception {
-        PixWebhookRequest request = PixWebhookRequest.builder()
-                .endToEndId("E12345678901234567890123456789012")
-                .eventId("evt-123")
-                .eventType(null)
-                .occurredAt(Instant.now())
-                .build();
+        PixWebhookRequest request = new PixWebhookRequest(
+                "E12345678901234567890123456789012",
+                "evt-123",
+                null,
+                Instant.now()
+        );
 
         mockMvc.perform(post("/pix/webhook")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -198,12 +192,12 @@ class PixControllerValidationTest {
     @Test
     @DisplayName("Should return 400 when webhook occurredAt is null")
     void shouldReturn400WhenWebhookOccurredAtIsNull() throws Exception {
-        PixWebhookRequest request = PixWebhookRequest.builder()
-                .endToEndId("E12345678901234567890123456789012")
-                .eventId("evt-123")
-                .eventType("CONFIRMED")
-                .occurredAt(null)
-                .build();
+        PixWebhookRequest request = new PixWebhookRequest(
+                "E12345678901234567890123456789012",
+                "evt-123",
+                "CONFIRMED",
+                null
+        );
 
         mockMvc.perform(post("/pix/webhook")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -212,3 +206,4 @@ class PixControllerValidationTest {
                 .andExpect(jsonPath("$.message").value(containsString("occurred")));
     }
 }
+
