@@ -41,32 +41,32 @@ O **Distributed Tracing** permite rastrear requisições através de todo o flux
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    PIX Wallet Application                    │
+│                    PIX Wallet Application                   │
 │  ┌──────────────────────────────────────────────────────┐   │
 │  │ @Traced Annotation → TracingAspect (AOP)             │   │
-│  │         ↓                                             │   │
+│  │         ↓                                            │   │
 │  │ Micrometer Observation API                           │   │
-│  │         ↓                                             │   │
+│  │         ↓                                            │   │
 │  │ Micrometer Tracing Bridge (OTel)                     │   │
 │  └──────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────┘
                            ↓ OTLP (HTTP/4318)
 ┌─────────────────────────────────────────────────────────────┐
-│              OpenTelemetry Collector (Docker)                │
-│  • Recebe spans via OTLP                                     │
-│  • Processa e exporta para Tempo                             │
+│              OpenTelemetry Collector (Docker)               │
+│  • Recebe spans via OTLP                                    │
+│  • Processa e exporta para Tempo                            │
 └─────────────────────────────────────────────────────────────┘
                            ↓
 ┌─────────────────────────────────────────────────────────────┐
-│                   Grafana Tempo (Storage)                    │
-│  • Armazena traces                                           │
-│  • Permite queries por trace_id, service, operation          │
+│                   Grafana Tempo (Storage)                   │
+│  • Armazena traces                                          │
+│  • Permite queries por trace_id, service, operation         │
 └─────────────────────────────────────────────────────────────┘
                            ↓
 ┌─────────────────────────────────────────────────────────────┐
-│                  Grafana (Visualização)                      │
-│  • Explore traces no Tempo                                   │
-│  • Correlacione com logs (Loki) e métricas (Prometheus)      │
+│                  Grafana (Visualização)                     │
+│  • Explore traces no Tempo                                  │
+│  • Correlacione com logs (Loki) e métricas (Prometheus)     │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -256,14 +256,14 @@ Ao abrir um trace, você verá:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ Trace: 1a2b3c4d5e6f7g8h9i0j                                  │
-│ Duration: 245ms                                              │
+│ Trace: 1a2b3c4d5e6f7g8h9i0j                                 │
+│ Duration: 245ms                                             │
 ├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│ pix.transfer.create [PixTransferService]       ████████ 245ms│
-│ └─ database.query.select                      ██ 45ms        │
-│ └─ database.query.insert                      ██ 38ms        │
-│                                                              │
+│                                                             │
+│ pix.transfer.create [PixTransferService]      ████████ 245ms│
+│ └─ database.query.select                     ██ 45ms        │
+│ └─ database.query.insert                     ██ 38ms        │
+│                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
