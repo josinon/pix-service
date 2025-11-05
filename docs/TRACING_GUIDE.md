@@ -563,3 +563,35 @@ Fluxo de debug ideal:
 
 **Atualizado em:** 2025-11-04  
 **Versão:** 1.0 (Sprint 3)
+
+---
+## 🔧 Apêndice: Limitações do Tracing no Estado Atual
+
+| Aspecto | Documentação principal | Implementação atual | Observação |
+|---------|------------------------|---------------------|------------|
+| Spans de negócio adicionais (ex: apply) | Mencionados indiretamente | NÃO existem | Apenas `pix.transfer.create` e `pix.webhook.process` estão anotados |
+| Atributos de negócio em spans (endToEndId, walletId, transferId, eventId, userId) | Exemplos sugerem presença | NÃO propagados para spans; só em logs via MDC | Correlação trace ↔ negócio requer uso de `trace_id` capturado em log |
+| Queries por endToEndId / userId | Exemplos mostrados | Não retornam resultados (atributos ausentes) | Usar logs para obter `trace_id` |
+| Enriquecimento automático via ObservabilityContext | Implicitamente assumido | Não implementado no `TracingAspect` | Planejado: adicionar keyValues antes de `observation.start()` |
+
+### Fluxo Correto de Correlação (Atual)
+1. Executar operação → gerar logs com MDC (contém endToEndId, walletId, etc.).
+2. Copiar `trace_id` de um log.
+3. Buscar trace por `trace_id` no Tempo.
+4. Analisar spans técnicos (classe/método) e voltar aos logs para contexto de negócio.
+
+### Query Exemplo Válida
+```traceql
+{name="pix.transfer.create" && status=error}
+```
+
+### Query Exemplo Inválida (Ainda Não Suportada)
+```traceql
+{endToEndId="E123..."}
+```
+
+### Próximos Passos Prioritários
+1. Adicionar atributos de negócio aos spans.
+2. Criar spans internos (validação, persistência) para granularidade de latência.
+3. Revisar sampling para produção (reduzir overhead).
+4. Dashboards de correlação trace/log/métrica.

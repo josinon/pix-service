@@ -71,7 +71,7 @@ Validação em 3 níveis:
 | Ledger append-only | Auditoria e reconstrução histórica fácil | Consulta de saldo via agregação SUM |
 | Webhook assíncrono para confirmação | Reduz acoplamento e permite integração externa simulada | Necessário correlacionar por endToEndId |
 | Idempotência multi-nível (depósito, saque, transferência, webhook) | Evitar duplicação em reenvios ou concorrência | Requisições repetidas retornam estado idempotente |
-| Otimismo (optimistic locking) em transferências | Simplicidade e menor bloqueio | Possível contenda em alta concorrência, mitigada por version checks |
+| Optimistic locking em transferências | Simplicidade e menor bloqueio | Possível contenda em alta concorrência, mitigada por version checks |
 | Validação estratificada | Garantir erro rápido no nível correto | Mensagens consistentes e testes focados |
 | Logs estruturados + MDC | Correlação entre requisição e evento assíncrono | Investigação rápida em Loki/Grafana |
 | Métricas personalizadas | Observação de SLAs de negócio | Dashboards e alertas orientados a outcomes |
@@ -145,11 +145,12 @@ App (Logs / Métricas / Traces) → OTEL Collector → { Prometheus, Loki, Tempo
 ```
 
 ### 7.2 Componentes Implementados
-- MDC com chaves: correlationId, operation, walletId, endToEndId, transferId, eventId
+- MDC com chaves: correlationId, operation, walletId, endToEndId, transferId, eventId, userId
 - Métricas de negócio e técnica (pix.transfers.*, pix.webhooks.*, pix.transfers.pending, timers de criação e end-to-end)
-- Spans principais: pix.transfer.create, pix.webhook.process, pix.transfer.apply
+- Spans atualmente instrumentados: pix.transfer.create, pix.webhook.process (não há span pix.transfer.apply ainda)
 - Dashboards: Transfers Overview, Correlation, Operational Health, Alerts & SLOs
 - Alertas: erro elevado, latência, pendências excessivas, duplicação de webhooks
+- Observação: atributos de negócio (endToEndId, walletId, transferId) NÃO estão presentes nos spans – apenas nos logs. Correlação de trace → negócio deve usar trace_id dos logs.
 
 ### 7.3 Endpoints & Portas
 | Serviço | URL | Uso |
@@ -192,10 +193,15 @@ Exemplo:
 |---------|------|-----------|-----------------|
 | pix.transfers.created | Counter | Total de transferências criadas | Volume / carga |
 | pix.transfers.confirmed | Counter | Transferências confirmadas | Taxa de sucesso |
+| pix.transfers.rejected | Counter | Transferências rejeitadas | Qualidade / falhas externas |
 | pix.transfers.pending | Gauge | Em estado PENDING | Fila / atraso |
+| pix.transfer.creation.time | Timer | Latência de criação | Performance endpoint |
 | pix.transfer.end_to_end.time | Timer | Criação → confirmação | SLA de fluxo |
 | pix.webhooks.received | Counter | Webhooks totais | Atividade externa |
 | pix.webhooks.duplicated | Counter | Eventos duplicados | Idempotência / ruído |
+| pix.webhook.processing.time | Timer | Latência processamento webhook | Performance assíncrona |
+
+Nota: Erros de criação/processamento são marcados via timers com tag status="error" e error_type, não há counters dedicados de erro.
 
 Queries úteis:
 ```promql
@@ -205,15 +211,18 @@ rate(pix_webhooks_duplicated_total[5m])
 ```
 
 ### 7.7 Tracing
-Spans principais: 
+Spans principais:
 - pix.transfer.create (SERVER)
 - pix.webhook.process (SERVER)
-- pix.transfer.apply (INTERNAL)
+
+Limitações atuais:
+- Atributos de negócio (endToEndId, walletId, transferId, eventId) não são adicionados aos spans – apenas logs possuem esses campos via MDC.
+- Para correlacionar uma transferência a um trace: capture trace_id em um log (com endToEndId presente) e busque o trace por trace_id no Tempo.
 
 Como consultar:
 1. Grafana → Explore → Tempo
-2. Filtro por `endToEndId` (atribuído como atributo de span via MDC propagation)
-3. Inspecione hierarquia (aplicar → debit → credit)
+2. Filtro por `name="pix.transfer.create"` ou `name="pix.webhook.process"`
+3. Use trace_id obtido nos logs para foco em uma jornada específica.
 
 ### 7.8 Casos de Uso Comuns de Observabilidade
 
@@ -244,18 +253,19 @@ Como consultar:
 ### 7.9 Alertas Essenciais (Prometheus)
 | Alerta | Objetivo | Exemplo Expr |
 |--------|----------|--------------|
-| HighTransferErrorRate | Detectar falhas em criação | rate(pix_transfer_creation_time_count{status="error"}[5m]) > 0.1 |
+| HighTransferErrorRate | Detectar falhas em criação | rate(pix_transfer_creation_time_seconds_count{status="error"}[5m]) / rate(pix_transfer_creation_time_seconds_count[5m]) > 0.10 |
 | HighWebhookLatency | Latência de processamento | histogram_quantile(0.95, rate(pix_webhook_processing_time_seconds_bucket[5m])) > 2 |
 | TooManyPendingTransfers | Atraso de confirmação | pix_transfers_pending > 100 |
-| HighWebhookDuplicationRate | Problema de idempotência upstream | rate(pix_webhooks_duplicated_total[5m]) > 0.05 |
+| HighWebhookDuplicationRate | Problema de idempotência upstream | (rate(pix_webhooks_duplicated_total[5m]) / rate(pix_webhooks_received_total[5m])) > 0.30 |
 
 ### 7.10 Fluxo de Investigação Recomendado
 1. Sintoma (ex: alta latência) → consultar dashboard
 2. Confirmar em métricas Prometheus (quantificar impacto)
-3. Abrir trace para requisições específicas (Tempo)
-4. Correlacionar logs pelo endToEndId ou correlationId
-5. Validar se alerta disparou / threshold adequado
-6. Registrar causa e ação em playbook interno (futuro)
+3. Capturar trace_id em um log relacionado (usa correlationId / endToEndId no log)
+4. Buscar trace no Tempo pelo trace_id
+5. Correlacionar spans e logs (mesmo trace_id)
+6. Validar se alerta disparou / threshold adequado
+7. Registrar causa e ação em playbook interno (futuro)
 
 ### 7.11 Referências
 - docs/OBSERVABILITY_PLAN.md

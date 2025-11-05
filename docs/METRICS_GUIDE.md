@@ -924,3 +924,28 @@ Datasource já configurado: **Prometheus**
 
 **Última Atualização**: Sprint 2 - Métricas Customizadas  
 **Contato**: Time de Observability PIX Wallet
+
+---
+## 🔧 Apêndice: Estado Atual vs Seção Principal
+
+Este apêndice ajusta divergências entre a descrição originalmente planejada e o código hoje:
+
+| Aspecto | Documentação original | Implementação atual | Ação recomendada futura |
+|---------|-----------------------|---------------------|-------------------------|
+| Counters de erro (`pix.transfer.creation.errors`, `pix.webhook.processing.errors`) | Existentes e usados em queries | NÃO existem; erros registrados via timers com tags `status=error` e `error_type` | Criar counters dedicados para simplificar queries e alertas |
+| Tags de tipo em webhooks | `event_type` | `eventType` | Padronizar para snake_case ou ajustar dashboards para camelCase |
+| Tags de tipo em pixkeys | `key_type` | `keyType` | Idem acima |
+| Queries de erro (transfer/webhook) | Usam *_errors_total | Devem usar `*_time_seconds_count{status="error"}` | Atualizar dashboards/alertas |
+| Métricas de qualidade listadas | Incluem counters de erro | Devem referenciar timers com status=error | Atualizar documentação principal (feito parcialmente no README) |
+
+### Exemplos Corrigidos de Queries de Erro
+```promql
+# Transferências - erros por tipo
+sum by (error_type) (rate(pix_transfer_creation_time_seconds_count{status="error"}[5m]))
+
+# Webhooks - erros por tipo
+sum by (error_type) (rate(pix_webhook_processing_time_seconds_count{status="error"}[5m]))
+```
+
+### Nota
+Mantivemos o corpo principal para referência histórica; utilize este apêndice para qualquer automação ou criação de dashboards até os ajustes de código serem implementados.
