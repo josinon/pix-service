@@ -268,9 +268,9 @@ Como consultar:
 7. Registrar causa e ação em playbook interno (futuro)
 
 ### 7.11 Referências
-- docs/OBSERVABILITY_PLAN.md
-- docs/METRICS_GUIDE.md
-- docs/TRACING_GUIDE.md
+- [Plano de Observabilidade](docs/OBSERVABILITY_PLAN.md)
+- [Guia de Métricas](docs/METRICS_GUIDE.md)
+- [Guia de Tracing](docs/TRACING_GUIDE.md)
 
 ---
 
