@@ -4,7 +4,6 @@ import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.pix.wallet.application.port.in.ProcessPixTransferUseCase;
-import org.pix.wallet.application.port.out.LedgerEntryRepositoryPort;
 import org.pix.wallet.application.port.out.PixKeyRepositoryPort;
 import org.pix.wallet.application.port.out.TransferRepositoryPort;
 import org.pix.wallet.application.port.out.WalletRepositoryPort;
@@ -29,8 +28,10 @@ public class PixTransferService implements ProcessPixTransferUseCase {
     private final WalletRepositoryPort walletRepositoryPort;
     private final PixKeyRepositoryPort pixKeyRepositoryPort;
     private final TransferRepositoryPort transferRepositoryPort;
-    private final LedgerEntryRepositoryPort ledgerEntryRepositoryPort;
+    // Removed direct usage after refactor; retained only via constructor before Lombok. Can eliminate to reduce coupling.
+    // private final LedgerEntryRepositoryPort ledgerEntryRepositoryPort; // (Removed)
     private final MetricsService metricsService;
+    private final FundsValidator fundsValidator;
     
     @Override
     @Traced(operation = "pix.transfer.create", description = "Create PIX transfer")
@@ -122,17 +123,7 @@ public class PixTransferService implements ProcessPixTransferUseCase {
                       kv("differentWallets", true));
             
             // 7. Validate source wallet has sufficient balance
-            BigDecimal currentBalance = ledgerEntryRepositoryPort.getCurrentBalance(command.fromWalletId())
-                .orElse(BigDecimal.ZERO);
-            
-            if (currentBalance.compareTo(command.amount()) < 0) {
-                log.error("Insufficient balance", 
-                          kv("walletId", command.fromWalletId()),
-                          kv("currentBalance", currentBalance),
-                          kv("requiredAmount", command.amount()),
-                          kv("errorType", "insufficient_balance"));
-                throw new IllegalArgumentException("Insufficient balance. Available: " + currentBalance + ", Required: " + command.amount());
-            }
+            BigDecimal currentBalance = fundsValidator.ensureSufficientFunds(UUID.fromString(command.fromWalletId()), command.amount());
             
             log.debug("Balance validated", 
                       kv("currentBalance", currentBalance),

@@ -2,6 +2,7 @@ package org.pix.wallet.infrastructure.config;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.pix.wallet.domain.exception.InsufficientFundsException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
@@ -45,6 +46,18 @@ public class RestExceptionHandler {
             Instant.now()
         );
         
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
+    @ExceptionHandler(InsufficientFundsException.class)
+    public ResponseEntity<ErrorResponse> handleInsufficientFunds(InsufficientFundsException ex) {
+        log.warn("Insufficient funds: {}", ex.getMessage());
+        ErrorResponse error = new ErrorResponse(
+            "INSUFFICIENT_FUNDS",
+            ex.getMessage(),
+            HttpStatus.CONFLICT.value(),
+            Instant.now()
+        );
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
     

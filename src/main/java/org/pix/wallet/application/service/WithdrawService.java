@@ -12,14 +12,17 @@ public class WithdrawService implements WithdrawUseCase {
 
     private final WalletOperationValidator validator;
     private final LedgerEntryRepositoryPort ledgerPort;
+    private final FundsValidator fundsValidator;
     private final MetricsService metricsService;
 
     public WithdrawService(WalletOperationValidator validator,
-                          LedgerEntryRepositoryPort ledgerPort,
-                          MetricsService metricsService) {
+                           LedgerEntryRepositoryPort ledgerPort,
+                           MetricsService metricsService,
+                           FundsValidator fundsValidator) {
         this.validator = validator;
         this.ledgerPort = ledgerPort;
         this.metricsService = metricsService;
+        this.fundsValidator = fundsValidator;
     }
 
    @Override
@@ -31,12 +34,16 @@ public class WithdrawService implements WithdrawUseCase {
         
         Wallet wallet = validator.validateAndGetActiveWallet(command.walletId());
 
-        // Check idempotency
+        // Idempotency shortcut
         if (ledgerPort.existsByIdempotencyKey(command.idempotencyKey())) {
             return new Result(wallet.id(), command.idempotencyKey());
         }
 
-        // Execute withdraw
+        // Business rule: no overdraft
+    // Ensure sufficient funds (returns current balance for potential future metrics/logs)
+    fundsValidator.ensureSufficientFunds(wallet.id(), command.amount());
+
+        // Execute withdraw (will persist ledger entry)
         ledgerPort.withdraw(wallet.id().toString(), command.amount(), command.idempotencyKey());
         
         metricsService.recordWithdrawalCompleted();

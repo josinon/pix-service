@@ -4,7 +4,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.pix.wallet.application.port.in.ProcessPixTransferUseCase;
@@ -48,8 +47,7 @@ public class PixTransferServiceTest {
     @Mock
     private org.pix.wallet.infrastructure.observability.MetricsService metricsService;
 
-    @InjectMocks
-    private PixTransferService pixTransferService;
+        private PixTransferService pixTransferService;
 
     private UUID fromWalletId;
     private UUID toWalletId;
@@ -64,6 +62,9 @@ public class PixTransferServiceTest {
         pixKey = "12345678901";
         idempotencyKey = "idp-" + UUID.randomUUID();
         amount = new BigDecimal("100.00");
+                // Manual construction due to new FundsValidator dependency (PixTransferService no longer needs ledger repo directly)
+                FundsValidator fundsValidator = new FundsValidator(ledgerEntryRepositoryPort);
+                pixTransferService = new PixTransferService(walletRepositoryPort, pixKeyRepositoryPort, transferRepositoryPort, metricsService, fundsValidator);
     }
 
 

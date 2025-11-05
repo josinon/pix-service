@@ -7,6 +7,7 @@ import org.pix.wallet.application.port.in.WithdrawUseCase;
 import org.pix.wallet.application.port.out.LedgerEntryRepositoryPort;
 import org.pix.wallet.application.port.out.WalletRepositoryPort;
 import org.pix.wallet.domain.model.Wallet;
+import org.pix.wallet.domain.exception.InsufficientFundsException;
 import org.pix.wallet.domain.model.enums.WalletStatus;
 import org.pix.wallet.infrastructure.observability.MetricsService;
 
@@ -28,7 +29,8 @@ class WithdrawServiceTest {
     private LedgerEntryRepositoryPort ledgerPort = mock(LedgerEntryRepositoryPort.class);
     private MetricsService metricsService = mock(MetricsService.class);
     private WalletOperationValidator validator = new WalletOperationValidator(walletPort);
-    private WithdrawService withdrawService = new WithdrawService(validator, ledgerPort, metricsService);
+    private FundsValidator fundsValidator = new FundsValidator(ledgerPort);
+    private WithdrawService withdrawService = new WithdrawService(validator, ledgerPort, metricsService, fundsValidator);
 
     private UUID walletId;
     private Wallet wallet;
@@ -43,6 +45,8 @@ class WithdrawServiceTest {
                 .createdAt(Instant.now())
                 .build();
         idempotencyKey = "idp-" + UUID.randomUUID();
+        // Default balance for happy-path tests
+    when(ledgerPort.getCurrentBalance(walletId.toString())).thenReturn(Optional.of(new BigDecimal("1000000.00")));
     }
 
     @Test
@@ -52,8 +56,8 @@ class WithdrawServiceTest {
         BigDecimal amount = new BigDecimal("100.00");
         var command = new WithdrawUseCase.Command(walletId, amount, idempotencyKey);
 
-        when(walletPort.findById(walletId)).thenReturn(Optional.of(wallet));
-        when(ledgerPort.existsByIdempotencyKey(idempotencyKey)).thenReturn(false);
+    when(walletPort.findById(walletId)).thenReturn(Optional.of(wallet));
+    when(ledgerPort.existsByIdempotencyKey(idempotencyKey)).thenReturn(false);
 
         // Act
         WithdrawUseCase.Result result = withdrawService.execute(command);
@@ -65,6 +69,7 @@ class WithdrawServiceTest {
 
         verify(walletPort).findById(walletId);
         verify(ledgerPort).existsByIdempotencyKey(idempotencyKey);
+        verify(ledgerPort).getCurrentBalance(walletId.toString());
         verify(ledgerPort).withdraw(walletId.toString(), amount, idempotencyKey);
     }
 
@@ -187,8 +192,8 @@ class WithdrawServiceTest {
         BigDecimal amount = new BigDecimal("100.00");
         var command = new WithdrawUseCase.Command(walletId, amount, idempotencyKey);
 
-        when(walletPort.findById(walletId)).thenReturn(Optional.of(wallet));
-        when(ledgerPort.existsByIdempotencyKey(idempotencyKey)).thenReturn(true);
+    when(walletPort.findById(walletId)).thenReturn(Optional.of(wallet));
+    when(ledgerPort.existsByIdempotencyKey(idempotencyKey)).thenReturn(true);
 
         // Act
         WithdrawUseCase.Result result = withdrawService.execute(command);
@@ -200,6 +205,8 @@ class WithdrawServiceTest {
 
         verify(walletPort).findById(walletId);
         verify(ledgerPort).existsByIdempotencyKey(idempotencyKey);
+        // Balance should not be retrieved due to idempotency short-circuit
+        verify(ledgerPort, never()).getCurrentBalance(walletId.toString());
         verify(ledgerPort, never()).withdraw(any(), any(), any());
     }
 
@@ -210,8 +217,8 @@ class WithdrawServiceTest {
         BigDecimal amount = new BigDecimal("99.99");
         var command = new WithdrawUseCase.Command(walletId, amount, idempotencyKey);
 
-        when(walletPort.findById(walletId)).thenReturn(Optional.of(wallet));
-        when(ledgerPort.existsByIdempotencyKey(idempotencyKey)).thenReturn(false);
+    when(walletPort.findById(walletId)).thenReturn(Optional.of(wallet));
+    when(ledgerPort.existsByIdempotencyKey(idempotencyKey)).thenReturn(false);
 
         // Act
         WithdrawUseCase.Result result = withdrawService.execute(command);
@@ -220,6 +227,7 @@ class WithdrawServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.walletId()).isEqualTo(walletId);
 
+        verify(ledgerPort).getCurrentBalance(walletId.toString());
         verify(ledgerPort).withdraw(walletId.toString(), amount, idempotencyKey);
     }
 
@@ -230,8 +238,8 @@ class WithdrawServiceTest {
         BigDecimal amount = new BigDecimal("0.01");
         var command = new WithdrawUseCase.Command(walletId, amount, idempotencyKey);
 
-        when(walletPort.findById(walletId)).thenReturn(Optional.of(wallet));
-        when(ledgerPort.existsByIdempotencyKey(idempotencyKey)).thenReturn(false);
+    when(walletPort.findById(walletId)).thenReturn(Optional.of(wallet));
+    when(ledgerPort.existsByIdempotencyKey(idempotencyKey)).thenReturn(false);
 
         // Act
         WithdrawUseCase.Result result = withdrawService.execute(command);
@@ -240,6 +248,7 @@ class WithdrawServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.walletId()).isEqualTo(walletId);
 
+        verify(ledgerPort).getCurrentBalance(walletId.toString());
         verify(ledgerPort).withdraw(walletId.toString(), amount, idempotencyKey);
     }
 
@@ -250,8 +259,8 @@ class WithdrawServiceTest {
         BigDecimal amount = new BigDecimal("999999.99");
         var command = new WithdrawUseCase.Command(walletId, amount, idempotencyKey);
 
-        when(walletPort.findById(walletId)).thenReturn(Optional.of(wallet));
-        when(ledgerPort.existsByIdempotencyKey(idempotencyKey)).thenReturn(false);
+    when(walletPort.findById(walletId)).thenReturn(Optional.of(wallet));
+    when(ledgerPort.existsByIdempotencyKey(idempotencyKey)).thenReturn(false);
 
         // Act
         WithdrawUseCase.Result result = withdrawService.execute(command);
@@ -260,6 +269,7 @@ class WithdrawServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.walletId()).isEqualTo(walletId);
 
+        verify(ledgerPort).getCurrentBalance(walletId.toString());
         verify(ledgerPort).withdraw(walletId.toString(), amount, idempotencyKey);
     }
 
@@ -282,18 +292,39 @@ class WithdrawServiceTest {
         BigDecimal amount = new BigDecimal("250.50");
         var command = new WithdrawUseCase.Command(walletId, amount, idempotencyKey);
 
-        when(walletPort.findById(walletId)).thenReturn(Optional.of(wallet));
-        when(ledgerPort.existsByIdempotencyKey(idempotencyKey)).thenReturn(false);
+    when(walletPort.findById(walletId)).thenReturn(Optional.of(wallet));
+    when(ledgerPort.existsByIdempotencyKey(idempotencyKey)).thenReturn(false);
 
         // Act
         withdrawService.execute(command);
 
         // Assert
+        verify(ledgerPort).getCurrentBalance(walletId.toString());
         verify(ledgerPort).withdraw(
                 eq(walletId.toString()),
                 eq(amount),
                 eq(idempotencyKey)
         );
+    }
+
+    @Test
+    @DisplayName("Should throw InsufficientFundsException when balance is lower than requested amount")
+    void shouldThrowInsufficientFundsExceptionWhenBalanceTooLow() {
+        // Arrange
+        BigDecimal amount = new BigDecimal("500.00");
+        var command = new WithdrawUseCase.Command(walletId, amount, idempotencyKey);
+
+        when(walletPort.findById(walletId)).thenReturn(Optional.of(wallet));
+        when(ledgerPort.existsByIdempotencyKey(idempotencyKey)).thenReturn(false);
+        when(ledgerPort.getCurrentBalance(walletId.toString())).thenReturn(Optional.of(new BigDecimal("100.00")));
+
+        // Act & Assert
+        assertThatThrownBy(() -> withdrawService.execute(command))
+            .isInstanceOf(InsufficientFundsException.class)
+            .hasMessageContaining("Insufficient balance");
+
+        verify(ledgerPort).getCurrentBalance(walletId.toString());
+        verify(ledgerPort, never()).withdraw(any(), any(), any());
     }
 
 }

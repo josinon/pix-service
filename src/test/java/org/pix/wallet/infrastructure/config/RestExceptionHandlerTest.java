@@ -2,6 +2,7 @@ package org.pix.wallet.infrastructure.config;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
+import org.pix.wallet.domain.exception.InsufficientFundsException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
@@ -54,6 +55,22 @@ class RestExceptionHandlerTest {
         assertThat(response.getBody().message()).isEqualTo("Wallet already exists");
         assertThat(response.getBody().status()).isEqualTo(409);
         assertThat(response.getBody().timestamp()).isNotNull();
+    }
+
+    @Test
+    void shouldHandleInsufficientFundsExceptionWith409Status() {
+        // Given
+        InsufficientFundsException exception = new InsufficientFundsException(new java.math.BigDecimal("100.00"), new java.math.BigDecimal("150.00"));
+
+        // When
+        ResponseEntity<RestExceptionHandler.ErrorResponse> response = handler.handleInsufficientFunds(exception);
+
+        // Then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().code()).isEqualTo("INSUFFICIENT_FUNDS");
+        assertThat(response.getBody().message()).contains("Insufficient balance");
+        assertThat(response.getBody().status()).isEqualTo(409);
     }
 
     @Test
