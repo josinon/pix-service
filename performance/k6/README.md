@@ -1,5 +1,55 @@
 # k6 Load Test Suite (Simplified)
 
+## Prerequisites
+
+### Installing k6
+
+#### macOS
+```bash
+# Using Homebrew
+brew install k6
+
+# Verify installation
+k6 version
+```
+
+#### Linux
+
+**Debian/Ubuntu:**
+```bash
+sudo gpg -k
+sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+sudo apt-get update
+sudo apt-get install k6
+```
+
+**Fedora/RHEL/CentOS:**
+```bash
+sudo dnf install https://dl.k6.io/rpm/repo.rpm
+sudo dnf install k6
+```
+
+**Using Snap (any Linux distro):**
+```bash
+sudo snap install k6
+```
+
+**Using Docker (platform-agnostic):**
+```bash
+docker pull grafana/k6:latest
+
+# Run tests
+docker run --rm -i --network host grafana/k6:latest run - <performance/k6/stress.js
+```
+
+**Verify installation:**
+```bash
+k6 version
+```
+
+For other installation methods, visit: https://k6.io/docs/get-started/installation/
+
 ## Scripts
 - `stress.js` Ramping arrival rate to discover saturation (transfer creation + simulated confirmation).
 - `baseline.js` Closed workload (30 VUs, 5m) for daily comparison.
