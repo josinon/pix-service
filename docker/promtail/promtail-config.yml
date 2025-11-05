@@ -1,0 +1,94 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  # Coleta logs da aplicação PIX Wallet via Docker
+  - job_name: pixwallet
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+        filters:
+          - name: name
+            values: ["pixwallet-app"]
+    
+    relabel_configs:
+      # Label: container name
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/(.*)'
+        target_label: 'container'
+      
+      # Label: application
+      - replacement: 'pixwallet'
+        target_label: 'app'
+      
+      # Label: environment (pode vir de variável de ambiente)
+      - source_labels: ['__meta_docker_container_label_environment']
+        target_label: 'environment'
+        replacement: '${ENVIRONMENT:-local}'
+    
+    # Pipeline para processar logs JSON estruturados
+    pipeline_stages:
+      # Stage 1: Parse JSON
+      - json:
+          expressions:
+            timestamp: timestamp
+            level: level
+            logger: logger_name
+            message: message
+            correlationId: correlationId
+            endToEndId: endToEndId
+            transferId: transferId
+            walletId: walletId
+            eventId: eventId
+            operation: operation
+            trace_id: trace_id
+            span_id: span_id
+            exception: exception
+      
+      # Stage 2: Extrair labels relevantes
+      - labels:
+          level:
+          operation:
+          correlationId:
+          endToEndId:
+      
+      # Stage 3: Timestamp
+      - timestamp:
+          source: timestamp
+          format: RFC3339Nano
+      
+      # Stage 4: Output (structured message)
+      - output:
+          source: message
+
+  # Coleta logs do Postgres (opcional, para debugging)
+  - job_name: postgres
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+        filters:
+          - name: name
+            values: ["pixwallet-db"]
+    
+    relabel_configs:
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/(.*)'
+        target_label: 'container'
+      - replacement: 'postgres'
+        target_label: 'app'
+    
+    pipeline_stages:
+      - regex:
+          expression: '^(?P<timestamp>\S+\s+\S+)\s+\[(?P<pid>\d+)\]\s+(?P<level>\w+):\s+(?P<message>.*)$'
+      - labels:
+          level:
+      - timestamp:
+          source: timestamp
+          format: '2006-01-02 15:04:05.000 MST'

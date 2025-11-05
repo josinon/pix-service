@@ -12,7 +12,7 @@ import org.pix.wallet.presentation.dto.DepositRequest;
 import org.pix.wallet.presentation.dto.WithdrawRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -33,19 +33,19 @@ class WalletControllerValidationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockitoBean
+    @MockBean
     private CreateWalletUseCase createWalletUseCase;
 
-    @MockitoBean
+    @MockBean
     private CreatePixKeyUseCase createPixKeyUseCase;
 
-    @MockitoBean
+    @MockBean
     private DepositUseCase depositUseCase;
 
-    @MockitoBean
+    @MockBean
     private WithdrawUseCase withdrawUseCase;
 
-    @MockitoBean
+    @MockBean
     private GetBalanceUseCase getBalanceUseCase;
 
     @Test

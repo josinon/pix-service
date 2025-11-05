@@ -65,10 +65,14 @@ O sistema foi desenvolvido com ênfase em:
 | Tecnologia | Versão | Propósito |
 |------------|--------|-----------|
 | **Spring Boot Actuator** | 3.5.7 | Endpoints de health check e métricas |
-| **Micrometer** | - | Abstração de métricas |
+| **Micrometer** | - | Abstração de métricas (Prometheus) |
+| **Logstash Logback Encoder** | 7.4 | Logs estruturados em JSON |
 | **Prometheus** | 2.55.0 | Coleta e armazenamento de métricas |
-| **Grafana** | 11.2.2 | Visualização de métricas e dashboards |
-| **Tempo** | latest | Backend de tracing distribuído |
+| **Alertmanager** | 0.27.0 | Gerenciamento de alertas |
+| **Grafana** | 11.2.2 | Visualização (dashboards) |
+| **Grafana Loki** | 3.0.0 | Armazenamento de logs |
+| **Promtail** | 3.0.0 | Coleta de logs para Loki |
+| **Grafana Tempo** | latest | Backend de tracing distribuído |
 | **OpenTelemetry Collector** | latest | Coleta e exportação de traces |
 
 ### Testes
@@ -103,22 +107,22 @@ O projeto segue os princípios de **Clean Architecture** e **Hexagonal Architect
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                  Presentation Layer                      │
+│                  Presentation Layer                     │
 │  (Controllers, DTOs, Exception Handlers)                │
 └────────────────────┬────────────────────────────────────┘
                      │
 ┌────────────────────▼────────────────────────────────────┐
-│                 Application Layer                        │
+│                 Application Layer                       │
 │     (Use Cases, Services, Port Interfaces)              │
 └────────────────────┬────────────────────────────────────┘
                      │
 ┌────────────────────▼────────────────────────────────────┐
-│                   Domain Layer                           │
+│                   Domain Layer                          │
 │         (Entities, Value Objects, Enums)                │
 └────────────────────┬────────────────────────────────────┘
                      │
 ┌────────────────────▼────────────────────────────────────┐
-│              Infrastructure Layer                        │
+│              Infrastructure Layer                       │
 │  (JPA Repositories, Adapters, External Services)        │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -163,18 +167,18 @@ O projeto implementa **validação em 3 camadas** para garantir qualidade e cons
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  Presentation: Bean Validation (@NotNull, @NotBlank)   │
-│  → Valida sintaxe e presença de campos                 │
+│  Presentation: Bean Validation (@NotNull, @NotBlank)    │
+│  → Valida sintaxe e presença de campos                  │
 └────────────────────┬────────────────────────────────────┘
                      ↓
 ┌─────────────────────────────────────────────────────────┐
 │  Application: WalletOperationValidator                  │
-│  → Valida idempotência e coordenação entre agregados   │
+│  → Valida idempotência e coordenação entre agregados    │
 └────────────────────┬────────────────────────────────────┘
                      ↓
 ┌─────────────────────────────────────────────────────────┐
 │  Domain: PixKeyValidator + TransferValidator            │
-│  → Valida regras de negócio do domínio PIX             │
+│  → Valida regras de negócio do domínio PIX              │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -386,12 +390,12 @@ O projeto implementa **full observability stack** com os **3 pilares de observab
 ### 🎯 Arquitetura de Observabilidade
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                     Application Layer                       │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐   │
-│  │   Logs   │  │ Metrics  │  │  Traces  │  │   MDC    │   │
-│  │  (JSON)  │  │(Micrometer)│ │ (OTEL)   │  │(Context) │   │
-│  └─────┬────┘  └─────┬────┘  └─────┬────┘  └─────┬────┘   │
+┌────────────────────────────────────────────────────────────┐
+│                     Application Layer                      │
+│  ┌──────────┐  ┌────────────┐  ┌──────────┐  ┌──────────┐  │
+│  │   Logs   │  │ Metrics    │  │  Traces  │  │   MDC    │  │
+│  │  (JSON)  │  │(Micrometer)│  │ (OTEL)   │  │(Context) │  │
+│  └─────┬────┘  └─────┬──────┘  └─────┬────┘  └─────┬────┘  │
 └────────┼─────────────┼─────────────┼─────────────┼─────────┘
          │             │             │             │
          ▼             ▼             ▼             ▼
@@ -400,19 +404,21 @@ O projeto implementa **full observability stack** com os **3 pilares de observab
 
 ### 📌 Sprints de Observabilidade
 
-O projeto seguiu um roadmap estruturado de 8 fases para implementação completa de observabilidade:
+O projeto seguiu um roadmap estruturado de 5 sprints para implementação completa de observabilidade:
 
 - ✅ **Sprint 1: Logs Estruturados + Correlation ID** - [CONCLUÍDO]
 - ✅ **Sprint 2: Métricas Customizadas** - [CONCLUÍDO]
-- ⏳ **Sprint 3: Distributed Tracing** - [Próximo]
-- ⏳ **Sprint 4: Loki Integration** - [Planejado]
-- ⏳ **Sprint 5: Dashboards e Alertas** - [Planejado]
+- ✅ **Sprint 3: Distributed Tracing** - [CONCLUÍDO]
+- ✅ **Sprint 4: Loki Integration** - [CONCLUÍDO]
+- ✅ **Sprint 5: Dashboards e Alertas** - [CONCLUÍDO]
 
 📖 **Documentação Completa**: 
 - Plano Geral: [`docs/OBSERVABILITY_PLAN.md`](docs/OBSERVABILITY_PLAN.md)
 - Sprint 1: [`docs/OBSERVABILITY_SPRINT1.md`](docs/OBSERVABILITY_SPRINT1.md)
 - Sprint 2: [`docs/OBSERVABILITY_SPRINT2.md`](docs/OBSERVABILITY_SPRINT2.md)
+- Sprint 3: [`docs/OBSERVABILITY_SPRINT3.md`](docs/OBSERVABILITY_SPRINT3.md)
 - **Guia de Métricas**: [`docs/METRICS_GUIDE.md`](docs/METRICS_GUIDE.md) ⭐
+- **Guia de Tracing**: [`docs/TRACING_GUIDE.md`](docs/TRACING_GUIDE.md) ⭐
 
 ### 1. 📝 Logs Estruturados (JSON)
 
@@ -582,6 +588,149 @@ curl http://localhost:8080/actuator/prometheus | grep pix
 2. Menu → Explore
 3. Data Source → Tempo
 4. Query → Search traces
+
+### 4. 🪵 Loki - Centralização de Logs
+
+**Loki + Promtail** para agregação e consulta de logs:
+- Promtail coleta logs da aplicação via Docker
+- Loki armazena logs (retention: 30 dias)
+- Grafana consulta logs via LogQL
+
+**Configuração**:
+- **Parser JSON:** Extrai campos estruturados automaticamente
+- **Labels:** `level`, `operation`, `correlationId`, `endToEndId`
+- **Correlação:** Logs → Traces (clique em `trace_id`)
+
+**Consultar logs no Grafana**:
+1. Acessar http://localhost:3000
+2. Menu → Explore
+3. Data Source → Loki
+4. Query LogQL: `{app="pixwallet"} | json | endToEndId="E123ABC456"`
+
+### 5. 📊 Dashboards Grafana
+
+**4 Dashboards Pré-configurados:**
+
+| Dashboard | UID | Descrição |
+|-----------|-----|-----------|
+| **PIX Transfers Overview** | `pix-transfers` | Métricas de negócio PIX (taxa sucesso, latências, pendentes) |
+| **Operational Health** | `operational-health` | Saúde do sistema (CPU, Memory, HTTP, DB, JVM) |
+| **PIX Correlation** | `pix-correlation` | ⭐ Correlação Logs + Traces + Métricas por transferência |
+| **Alerts & SLOs** | `alerts-slos` | Alertas ativos, SLO compliance, histórico |
+
+**Acesso:** http://localhost:3000 (admin/admin)
+
+### 6. 🚨 Alertas Inteligentes & SLOs
+
+**Alertmanager** para gerenciamento de alertas:
+- **10 Alertas Configurados:**
+  - Alta taxa de erro em transferências
+  - Latência alta em webhooks
+  - Muitas transferências pendentes
+  - Alta duplicação de webhooks
+  - Nenhum webhook recebido
+  - Pool de conexões esgotado
+  - Alto uso de memória JVM
+  - Alta taxa de erros HTTP
+  - Violação de SLO (taxa de sucesso < 99.9%)
+  - Violação de SLO (latência P95 > 500ms)
+
+**SLOs Implementados:**
+- Taxa de sucesso de transferências: 99.9%
+- Latência P95 de criação: < 500ms
+- Latência P99.5 de webhooks: < 1s
+- Tempo end-to-end médio: < 3s
+
+**Acesso:** http://localhost:9093
+
+### 4. 🪵 Logs Centralizados (Loki)
+
+**Grafana Loki** para centralização e consulta de logs:
+- Promtail coleta logs dos containers Docker
+- Loki armazena logs com labels indexados
+- Grafana permite queries LogQL
+
+**Características**:
+- Retenção: 30 dias
+- Parsing automático de logs JSON
+- Labels: `app`, `level`, `operation`, `correlationId`, `endToEndId`
+- **Derived Fields**: Click em `trace_id` no log → abre trace no Tempo
+
+**Consultar logs no Grafana**:
+1. Acessar http://localhost:3000
+2. Menu → Explore
+3. Data Source → Loki
+4. Query → `{app="pixwallet"}`
+
+**Queries úteis**:
+```logql
+# Todos os logs de uma transferência
+{app="pixwallet"} | json | endToEndId="E123ABC456"
+
+# Logs de erro
+{app="pixwallet"} | json | level="ERROR"
+
+# Rastrear por correlation ID
+{app="pixwallet"} | json | correlationId="abc-123"
+```
+
+### 5. 📊 Dashboards Grafana
+
+**4 Dashboards pré-configurados** para monitoramento completo:
+
+| Dashboard | Descrição | URL |
+|-----------|-----------|-----|
+| **PIX Transfers Overview** | Métricas de negócio: taxa criação, sucesso, latências, pendentes | http://localhost:3000/d/pix-transfers |
+| **Operational Health** | Métricas de sistema: HTTP, JVM, DB, CPU, logs | http://localhost:3000/d/operational-health |
+| **PIX Correlation Dashboard** | 🌟 **MAIS IMPORTANTE**: Logs + Traces + Métricas unificados por transferência | http://localhost:3000/d/pix-correlation |
+| **Alerts & SLOs** | Alertas ativos, histórico, compliance de SLOs | http://localhost:3000/d/alerts-slos |
+
+**Como usar o Correlation Dashboard**:
+1. Acessar http://localhost:3000/d/pix-correlation
+2. Digite o `endToEndId` ou `correlationId` no filtro
+3. Visualize:
+   - ✅ Status e métricas da transferência
+   - 🔍 Trace completo (flamegraph)
+   - 📜 Log stream da jornada completa
+   - 📊 Métricas de latência (criação, webhook, end-to-end)
+
+### 6. 🚨 Alertas Inteligentes
+
+**Prometheus Alertmanager** com 10 alertas configurados:
+
+#### Alertas de Negócio (PIX):
+1. **HighTransferErrorRate** - Taxa de erro > 10% em transferências
+2. **HighWebhookLatency** - P95 de webhook > 2s
+3. **TooManyPendingTransfers** - Mais de 100 transferências pendentes
+4. **HighWebhookDuplicationRate** - Taxa de duplicação > 5%
+5. **NoWebhooksReceived** - Nenhum webhook em 15min
+
+#### Alertas de Sistema:
+6. **DatabaseConnectionExhaustion** - Pool de conexões > 90%
+7. **HighMemoryUsage** - Heap JVM > 85%
+8. **HighHTTPErrorRate** - Taxa de erro HTTP 5xx > 5%
+
+#### Violações de SLO:
+9. **SLOViolation_TransferCreation** - Taxa de sucesso < 99.9%
+10. **SLOViolation_TransferLatency** - P95 > 500ms
+
+**Acessar Alertmanager**: http://localhost:9093
+
+**Configurar notificações**:
+- Editar `docker/alertmanager/alertmanager.yml`
+- Descomentar e configurar: Slack, Email, PagerDuty
+
+### 7. 📈 SLOs (Service Level Objectives)
+
+**3 SLOs principais** configurados:
+
+| SLO | Target | Métrica |
+|-----|--------|---------|
+| Taxa de Sucesso (Transferências) | 99.9% | `slo:pix_transfer_creation:success_rate:5m` |
+| Latência P95 (Criação) | < 500ms | `slo:pix_transfer_creation:latency_p95:5m` |
+| Latência P99.5 (Webhook) | < 1s | `slo:pix_webhook:latency_p995:5m` |
+
+Visualizar no dashboard: http://localhost:3000/d/alerts-slos
 
 ### 📖 Documentação de Observabilidade
 

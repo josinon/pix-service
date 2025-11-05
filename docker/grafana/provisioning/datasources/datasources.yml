@@ -14,6 +14,42 @@ datasources:
     type: tempo
     access: proxy
     orgId: 1
+    uid: tempo
     url: http://tempo:3200
     version: 1
     editable: true
+    jsonData:
+      tracesToLogsV2:
+        datasourceUid: 'loki'
+        spanStartTimeShift: '-1h'
+        spanEndTimeShift: '1h'
+        tags: ['correlationId', 'endToEndId']
+        filterByTraceID: true
+        filterBySpanID: false
+      tracesToMetrics:
+        datasourceUid: 'prometheus'
+        spanStartTimeShift: '-1h'
+        spanEndTimeShift: '1h'
+      serviceMap:
+        datasourceUid: 'prometheus'
+      nodeGraph:
+        enabled: true
+
+  - name: Loki
+    type: loki
+    access: proxy
+    orgId: 1
+    uid: loki
+    url: http://loki:3100
+    version: 1
+    editable: true
+    jsonData:
+      derivedFields:
+        - datasourceUid: tempo
+          matcherRegex: "trace_id[\":]\\s*[\"']?([0-9a-fA-F]+)[\"']?"
+          name: TraceID
+          url: '$${__value.raw}'
+        - datasourceUid: tempo
+          matcherRegex: "traceId[\":]\\s*[\"']?([0-9a-fA-F]+)[\"']?"
+          name: TraceID (alt)
+          url: '$${__value.raw}'

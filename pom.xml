@@ -28,6 +28,10 @@
 	</scm>
 	<properties>
 		<java.version>17</java.version>
+		<!-- SpringDoc upgraded to latest (assumed 2.7.0) for Spring Framework 6.2.x compatibility -->
+		<springdoc.version>2.7.0</springdoc.version>
+		<maven.compiler.release>${java.version}</maven.compiler.release>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
 	<dependencies>
 	<dependency>
@@ -42,6 +46,11 @@
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-web</artifactId>
 	</dependency>
+	<dependency>
+				<groupId>org.springdoc</groupId>
+				<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+				<version>${springdoc.version}</version>
+		</dependency>
 
 	<dependency>
       <groupId>org.springframework.boot</groupId>
@@ -69,11 +78,7 @@
 	<dependency>
 		<groupId>io.opentelemetry</groupId>
 		<artifactId>opentelemetry-exporter-otlp</artifactId>
-	</dependency>		<dependency>
-				<groupId>org.springdoc</groupId>
-				<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-				<version>2.5.0</version>
-		</dependency>
+	</dependency>
 
 		<dependency>
     <groupId>org.springframework.boot</groupId>
@@ -84,6 +89,11 @@
 		<dependency>
 			<groupId>io.micrometer</groupId>
 			<artifactId>micrometer-registry-otlp</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-registry-prometheus</artifactId>
 			<scope>runtime</scope>
 		</dependency>
 		<dependency>

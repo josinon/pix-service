@@ -1,0 +1,111 @@
+global:
+  resolve_timeout: 5m
+  # Configurações SMTP (descomente e configure se quiser enviar emails)
+  # smtp_smarthost: 'smtp.gmail.com:587'
+  # smtp_from: 'alertmanager@pixwallet.com'
+  # smtp_auth_username: 'your-email@gmail.com'
+  # smtp_auth_password: 'your-app-password'
+  # smtp_require_tls: true
+
+# Templates customizados (opcional)
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# Rotas de roteamento de alertas
+route:
+  # Agrupador padrão
+  group_by: ['alertname', 'component', 'severity']
+  group_wait: 10s        # Espera antes de enviar primeira notificação
+  group_interval: 10s    # Intervalo entre notificações do mesmo grupo
+  repeat_interval: 4h    # Intervalo para reenviar alerta não resolvido
+  receiver: 'default'    # Receiver padrão
+  
+  # Rotas específicas por severidade
+  routes:
+    # Alertas críticos - notificar imediatamente
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      group_wait: 5s
+      repeat_interval: 1h
+    
+    # Alertas de warning - agrupar mais
+    - match:
+        severity: warning
+      receiver: 'warning-alerts'
+      group_wait: 30s
+      repeat_interval: 12h
+    
+    # Violações de SLO - canal específico
+    - match:
+        component: slo
+      receiver: 'slo-violations'
+      group_wait: 5s
+      repeat_interval: 2h
+
+# Inibição de alertas (evitar spam)
+inhibit_rules:
+  # Se há um alerta crítico de sistema, inibir warnings relacionados
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['component']
+
+# Configuração de receivers (canais de notificação)
+receivers:
+  # Receiver padrão (console/webhook genérico)
+  - name: 'default'
+    webhook_configs:
+      - url: 'http://localhost:5001/webhook'
+        send_resolved: true
+
+  # Alertas críticos - múltiplos canais
+  - name: 'critical-alerts'
+    # Slack (descomente e configure)
+    # slack_configs:
+    #   - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+    #     channel: '#pix-alerts-critical'
+    #     title: '🚨 CRITICAL: {{ .GroupLabels.alertname }}'
+    #     text: '{{ range .Alerts }}{{ .Annotations.summary }}\n{{ .Annotations.description }}\n{{ end }}'
+    #     send_resolved: true
+    
+    # Email (descomente e configure global SMTP acima)
+    # email_configs:
+    #   - to: 'oncall@pixwallet.com'
+    #     headers:
+    #       Subject: '🚨 CRITICAL ALERT: {{ .GroupLabels.alertname }}'
+    #     html: '{{ range .Alerts }}{{ .Annotations.summary }}<br>{{ .Annotations.description }}<br>{{ end }}'
+    
+    # Webhook genérico
+    webhook_configs:
+      - url: 'http://localhost:5001/critical'
+        send_resolved: true
+
+  # Alertas de warning
+  - name: 'warning-alerts'
+    # Slack (descomente e configure)
+    # slack_configs:
+    #   - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+    #     channel: '#pix-alerts-warning'
+    #     title: '⚠️ WARNING: {{ .GroupLabels.alertname }}'
+    #     text: '{{ range .Alerts }}{{ .Annotations.summary }}\n{{ end }}'
+    #     send_resolved: false
+    
+    webhook_configs:
+      - url: 'http://localhost:5001/warning'
+        send_resolved: true
+
+  # Violações de SLO - canal específico para time de produto
+  - name: 'slo-violations'
+    # Slack (descomente e configure)
+    # slack_configs:
+    #   - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+    #     channel: '#pix-slo-violations'
+    #     title: '📊 SLO VIOLATION: {{ .GroupLabels.slo }}'
+    #     text: '{{ range .Alerts }}{{ .Annotations.summary }}\n{{ .Annotations.impact }}\n{{ end }}'
+    #     send_resolved: true
+    
+    webhook_configs:
+      - url: 'http://localhost:5001/slo'
+        send_resolved: true

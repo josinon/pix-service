@@ -10,7 +10,7 @@ import org.pix.wallet.application.service.WalletOperationValidator;
 import org.pix.wallet.domain.model.Wallet;
 import org.pix.wallet.domain.model.enums.WalletStatus;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -29,12 +29,12 @@ class WalletControllerTest {
     @Autowired
     MockMvc mvc;
 
-    @MockitoBean CreateWalletUseCase createWallet;
-    @MockitoBean GetBalanceUseCase getBalance;
-    @MockitoBean CreatePixKeyUseCase createPixKeyUseCase;
-    @MockitoBean DepositUseCase depositFunds;
-    @MockitoBean WithdrawUseCase withdrawFunds;
-    @MockitoBean WalletOperationValidator walletOperationValidator;
+        @MockBean CreateWalletUseCase createWallet;
+        @MockBean GetBalanceUseCase getBalance;
+        @MockBean CreatePixKeyUseCase createPixKeyUseCase;
+        @MockBean DepositUseCase depositFunds;
+        @MockBean WithdrawUseCase withdrawFunds;
+        @MockBean WalletOperationValidator walletOperationValidator;
 
     @Test
     void createWalletReturns201AndId() throws Exception {

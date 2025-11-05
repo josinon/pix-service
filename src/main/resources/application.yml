@@ -27,6 +27,17 @@ management:
           include: db,diskSpace
         liveness:
           include: ping
+  metrics:
+    tags:
+      application: ${spring.application.name}
+      environment: ${ENVIRONMENT:local}
+    distribution:
+      percentiles-histogram:
+        "[http.server.requests]": true
+  prometheus:
+    metrics:
+      export:
+        enabled: true
   # Distributed Tracing Configuration
   tracing:
     sampling:

@@ -1,0 +1,122 @@
+groups:
+  - name: pix_slos
+    interval: 30s
+    rules:
+      # SLO 1: Taxa de sucesso de criação de transferências (99.9%)
+      - record: slo:pix_transfer_creation:success_rate:5m
+        expr: |
+          sum(rate(pix_transfers_created_total{status!="error"}[5m]))
+          /
+          sum(rate(pix_transfers_created_total[5m]))
+      
+      # SLO 2: Taxa de sucesso de criação de transferências (1 hora)
+      - record: slo:pix_transfer_creation:success_rate:1h
+        expr: |
+          sum(rate(pix_transfers_created_total{status!="error"}[1h]))
+          /
+          sum(rate(pix_transfers_created_total[1h]))
+      
+      # SLO 3: Latência P95 de criação de transferências (< 500ms)
+      - record: slo:pix_transfer_creation:latency_p95:5m
+        expr: |
+          histogram_quantile(0.95, 
+            rate(pix_transfer_creation_time_seconds_bucket[5m])
+          )
+      
+      # SLO 4: Latência P99 de criação de transferências (< 1s)
+      - record: slo:pix_transfer_creation:latency_p99:5m
+        expr: |
+          histogram_quantile(0.99, 
+            rate(pix_transfer_creation_time_seconds_bucket[5m])
+          )
+      
+      # SLO 5: Taxa de sucesso de processamento de webhooks (99.5%)
+      - record: slo:pix_webhook:success_rate:5m
+        expr: |
+          sum(rate(pix_webhooks_received_total{status!="error"}[5m]))
+          /
+          sum(rate(pix_webhooks_received_total[5m]))
+      
+      # SLO 6: Latência P99.5 de webhooks (< 1s)
+      - record: slo:pix_webhook:latency_p995:5m
+        expr: |
+          histogram_quantile(0.995, 
+            rate(pix_webhook_processing_time_seconds_bucket[5m])
+          )
+      
+      # SLO 7: Tempo end-to-end médio (criação → confirmação) (< 3s)
+      - record: slo:pix_transfer:end_to_end_time:mean:5m
+        expr: |
+          rate(pix_transfer_end_to_end_time_seconds_sum[5m])
+          /
+          rate(pix_transfer_end_to_end_time_seconds_count[5m])
+      
+      # SLO 8: Taxa de duplicação de webhooks (< 1%)
+      - record: slo:pix_webhook:duplication_rate:5m
+        expr: |
+          rate(pix_webhooks_duplicated_total[5m])
+          /
+          rate(pix_webhooks_received_total[5m])
+
+  - name: business_kpis
+    interval: 1m
+    rules:
+      # KPI 1: Volume total de transferências criadas (última hora)
+      - record: business:pix_transfers:created:1h
+        expr: |
+          increase(pix_transfers_created_total[1h])
+      
+      # KPI 2: Volume total de transferências confirmadas (última hora)
+      - record: business:pix_transfers:confirmed:1h
+        expr: |
+          increase(pix_transfers_confirmed_total[1h])
+      
+      # KPI 3: Taxa de conversão (confirmadas / criadas)
+      - record: business:pix_transfers:conversion_rate:1h
+        expr: |
+          sum(increase(pix_transfers_confirmed_total[1h]))
+          /
+          sum(increase(pix_transfers_created_total[1h]))
+      
+      # KPI 4: Valor médio de transferências (se métrica existir)
+      # - record: business:pix_transfers:average_amount:1h
+      #   expr: |
+      #     sum(rate(pix_transfer_amount_sum[1h]))
+      #     /
+      #     sum(rate(pix_transfer_amount_count[1h]))
+
+  - name: system_aggregations
+    interval: 30s
+    rules:
+      # Agregação 1: Request rate total
+      - record: system:http_requests:rate:5m
+        expr: |
+          sum(rate(http_server_requests_seconds_count[5m]))
+      
+      # Agregação 2: Taxa de erro HTTP
+      - record: system:http_requests:error_rate:5m
+        expr: |
+          sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m]))
+          /
+          sum(rate(http_server_requests_seconds_count[5m]))
+      
+      # Agregação 3: Latência média HTTP
+      - record: system:http_requests:latency_mean:5m
+        expr: |
+          rate(http_server_requests_seconds_sum[5m])
+          /
+          rate(http_server_requests_seconds_count[5m])
+      
+      # Agregação 4: Uso de heap (percentual)
+      - record: system:jvm_memory:heap_usage:ratio
+        expr: |
+          jvm_memory_used_bytes{area="heap"}
+          /
+          jvm_memory_max_bytes{area="heap"}
+      
+      # Agregação 5: Uso de conexões do banco (percentual)
+      - record: system:database:connection_usage:ratio
+        expr: |
+          hikari_connections_active
+          /
+          hikari_connections_max

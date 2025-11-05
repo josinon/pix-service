@@ -61,10 +61,11 @@ public class WalletController {
     }
 
     @GetMapping("/{id}/balance")
-    public ResponseEntity<?> balance(
-            @PathVariable UUID id, 
+    public ResponseEntity<org.pix.wallet.presentation.dto.BalanceResponse> balance(
+            @PathVariable UUID id,
             @RequestParam(required = false) @Parameter(description = "Point in time to get balance", required = false) Instant at) {
-        return ResponseEntity.ok(getBalance.execute(new GetBalanceUseCase.Command(id, at)));
+        var result = getBalance.execute(new GetBalanceUseCase.Command(id, at));
+        return ResponseEntity.ok(new org.pix.wallet.presentation.dto.BalanceResponse(result.walletId(), result.balance()));
     }
 
     @PostMapping("/{id}/pix-keys")
@@ -94,7 +95,7 @@ public class WalletController {
     }
 
     @PostMapping("/{id}/withdraw")
-    public ResponseEntity<?> withdraw(
+    public ResponseEntity<WithdrawResponse> withdraw(
             @PathVariable UUID id,
             @RequestHeader(value = "Idempotency-Key", required = true) String key,
             @Valid @RequestBody WithdrawRequest body) {

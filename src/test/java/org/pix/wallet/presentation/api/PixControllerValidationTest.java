@@ -9,7 +9,7 @@ import org.pix.wallet.presentation.dto.PixTransferRequest;
 import org.pix.wallet.presentation.dto.PixWebhookRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -31,11 +31,11 @@ class PixControllerValidationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockitoBean
-    private ProcessPixTransferUseCase processPixTransferUseCase;
+        @MockBean
+        private ProcessPixTransferUseCase processPixTransferUseCase;
 
-    @MockitoBean
-    private ProcessPixWebhookUseCase processPixWebhookUseCase;
+        @MockBean
+        private ProcessPixWebhookUseCase processPixWebhookUseCase;
 
     @Test
     @DisplayName("Should return 400 when Idempotency-Key header is missing on PIX transfer")

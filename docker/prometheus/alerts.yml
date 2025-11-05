@@ -1,0 +1,156 @@
+groups:
+  - name: pix_transfers
+    interval: 30s
+    rules:
+      # ALERTA 1: Alta taxa de erro em transferências
+      - alert: HighTransferErrorRate
+        expr: |
+          (
+            rate(pix_transfer_creation_time_seconds_count{status="error"}[5m]) 
+            / 
+            rate(pix_transfer_creation_time_seconds_count[5m])
+          ) > 0.10
+        for: 2m
+        labels:
+          severity: warning
+          component: pix_transfer
+        annotations:
+          summary: "Alta taxa de erro em transferências PIX"
+          description: "{{ $value | humanizePercentage }} das transferências estão falhando nos últimos 5min (threshold: 10%)"
+          runbook: "Verificar logs de erro com: {app=\"pixwallet\"} | json | operation=\"PIX_TRANSFER_CREATE\" | level=\"ERROR\""
+
+      # ALERTA 2: Latência alta no processamento de webhooks
+      - alert: HighWebhookLatency
+        expr: |
+          histogram_quantile(0.95, 
+            rate(pix_webhook_processing_time_seconds_bucket[5m])
+          ) > 2
+        for: 5m
+        labels:
+          severity: warning
+          component: pix_webhook
+        annotations:
+          summary: "Latência alta no processamento de webhooks PIX"
+          description: "P95 = {{ $value | humanizeDuration }} (threshold: 2s)"
+          impact: "Webhooks demorando mais que o esperado, pode causar timeouts"
+
+      # ALERTA 3: Muitas transferências pendentes
+      - alert: TooManyPendingTransfers
+        expr: pix_transfers_pending > 100
+        for: 10m
+        labels:
+          severity: critical
+          component: pix_transfer
+        annotations:
+          summary: "Muitas transferências PIX pendentes"
+          description: "{{ $value }} transferências aguardando confirmação há mais de 10min"
+          impact: "Possível problema de conectividade com sistema externo ou webhook não sendo processado"
+
+      # ALERTA 4: Alta taxa de webhooks duplicados
+      - alert: HighWebhookDuplicationRate
+        expr: |
+          rate(pix_webhooks_duplicated_total[5m]) > 0.05
+        for: 3m
+        labels:
+          severity: warning
+          component: pix_webhook
+        annotations:
+          summary: "Alta taxa de webhooks PIX duplicados"
+          description: "{{ $value }} duplicações/s nos últimos 5min (threshold: 0.05/s)"
+          impact: "Sistema externo pode estar reenviando webhooks desnecessariamente"
+
+      # ALERTA 5: Nenhum webhook recebido
+      - alert: NoWebhooksReceived
+        expr: |
+          rate(pix_webhooks_received_total[15m]) == 0
+        for: 15m
+        labels:
+          severity: critical
+          component: pix_webhook
+        annotations:
+          summary: "Nenhum webhook PIX recebido nos últimos 15min"
+          description: "Sistema pode estar com problema de conectividade ou integração externa parou"
+          impact: "Transferências não estão sendo confirmadas/rejeitadas"
+
+  - name: system_health
+    interval: 30s
+    rules:
+      # ALERTA 6: Pool de conexões do banco esgotado
+      - alert: DatabaseConnectionExhaustion
+        expr: |
+          (hikari_connections_active / hikari_connections_max) > 0.90
+        for: 1m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "Pool de conexões do banco quase esgotado"
+          description: "{{ $value | humanizePercentage }} das conexões estão em uso (threshold: 90%)"
+          impact: "Novas requisições podem falhar por falta de conexões disponíveis"
+
+      # ALERTA 7: Uso alto de memória heap
+      - alert: HighMemoryUsage
+        expr: |
+          (jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"}) > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          component: jvm
+        annotations:
+          summary: "Uso alto de memória JVM Heap"
+          description: "{{ $value | humanizePercentage }} da heap está em uso (threshold: 85%)"
+          impact: "Aplicação pode sofrer OutOfMemoryError em breve"
+
+      # ALERTA 8: Taxa alta de erros HTTP
+      - alert: HighHTTPErrorRate
+        expr: |
+          (
+            rate(http_server_requests_seconds_count{status=~"5.."}[5m])
+            /
+            rate(http_server_requests_seconds_count[5m])
+          ) > 0.05
+        for: 3m
+        labels:
+          severity: warning
+          component: http
+        annotations:
+          summary: "Alta taxa de erros HTTP 5xx"
+          description: "{{ $value | humanizePercentage }} das requisições retornando erro 5xx (threshold: 5%)"
+          impact: "Clientes estão recebendo erros do servidor"
+
+  - name: slo_violations
+    interval: 30s
+    rules:
+      # ALERTA 9: Violação de SLO - Taxa de sucesso de transferências
+      - alert: SLOViolation_TransferCreation
+        expr: |
+          (
+            sum(rate(pix_transfers_created_total{status!="error"}[5m]))
+            /
+            sum(rate(pix_transfers_created_total[5m]))
+          ) < 0.999
+        for: 5m
+        labels:
+          severity: critical
+          component: slo
+          slo: "transfer_creation_success_rate"
+        annotations:
+          summary: "SLO violado: Taxa de sucesso de transferências abaixo de 99.9%"
+          description: "Taxa atual: {{ $value | humanizePercentage }} (SLO: 99.9%)"
+          impact: "SLA com clientes pode estar sendo violado"
+
+      # ALERTA 10: Violação de SLO - Latência de criação
+      - alert: SLOViolation_TransferLatency
+        expr: |
+          histogram_quantile(0.95, 
+            rate(pix_transfer_creation_time_seconds_bucket[5m])
+          ) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          component: slo
+          slo: "transfer_creation_latency"
+        annotations:
+          summary: "SLO violado: P95 de latência de criação acima de 500ms"
+          description: "P95 atual: {{ $value | humanizeDuration }} (SLO: 500ms)"
+          impact: "Experiência do usuário degradada"

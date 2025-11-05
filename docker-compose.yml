@@ -60,9 +60,25 @@ services:
       - "--storage.tsdb.retention.time=15d"
     volumes:
       - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./docker/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - ./docker/prometheus/recording-rules.yml:/etc/prometheus/recording-rules.yml:ro
       - prometheus-data:/prometheus
     ports:
       - "${PROMETHEUS_PORT:-9090}:9090"
+    networks: [app-net]
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: pixwallet-alertmanager
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--storage.path=/alertmanager"
+    volumes:
+      - ./docker/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager
+    ports:
+      - "9093:9093"
     networks: [app-net]
 
   tempo:
@@ -78,17 +94,51 @@ services:
     networks: [app-net]
 
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:latest
+    # Using official contrib distribution (removed -debug tag which doesn't exist)
+    image: otel/opentelemetry-collector-contrib:0.104.0
     container_name: pixwallet-otel-collector
     restart: unless-stopped
     command: ["--config=/etc/otelcol/config.yml"]
     volumes:
       - ./docker/otel/collector-config.yml:/etc/otelcol/config.yml:ro
     ports:
-      - "4317:4317"     # OTLP gRPC (se quiser usar)
-      - "4318:4318"     # OTLP HTTP (usaremos este)
+      - "4317:4317"
+      - "4318:4318"
+      - "13133:13133"
+    healthcheck:
+      # Using /health endpoint exposed by health_check extension. /healthz may not exist.
+      test: ["CMD-SHELL", "curl -fsS http://localhost:13133/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 30s
     depends_on:
       - tempo
+    networks: [app-net]
+
+  loki:
+    image: grafana/loki:3.0.0
+    container_name: pixwallet-loki
+    restart: unless-stopped
+    command: ["-config.file=/etc/loki/loki-config.yml"]
+    volumes:
+      - ./docker/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki-data:/loki
+    ports:
+      - "3100:3100"
+    networks: [app-net]
+
+  promtail:
+    image: grafana/promtail:3.0.0
+    container_name: pixwallet-promtail
+    restart: unless-stopped
+    command: ["-config.file=/etc/promtail/promtail-config.yml"]
+    volumes:
+      - ./docker/promtail/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - loki
     networks: [app-net]
 
   grafana:
@@ -108,6 +158,7 @@ services:
     depends_on:
       - prometheus
       - tempo
+      - loki
     networks: [app-net]
 
   app:
@@ -141,6 +192,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      # Use service_started to avoid blocking app start if collector healthcheck is slow
       otel-collector:
         condition: service_started
     networks: [app-net]
@@ -151,6 +203,8 @@ volumes:
   grafana-data:
   tempo-data:
   pgadmin-data:
+  loki-data:
+  alertmanager-data:
 
 networks:
   app-net:
