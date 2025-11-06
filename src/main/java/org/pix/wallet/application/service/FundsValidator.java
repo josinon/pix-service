@@ -20,15 +20,16 @@ public class FundsValidator {
     }
 
     /**
-     * Ensures the wallet has at least the requested amount.
-     * Returns current balance for optional logging / metrics.
+     * Ensures the wallet has at least the requested amount in AVAILABLE balance.
+     * Available balance = real balance - reserved funds.
+     * Returns available balance for optional logging / metrics.
      */
     public BigDecimal ensureSufficientFunds(UUID walletId, BigDecimal requestedAmount) {
-        BigDecimal current = ledgerEntryRepositoryPort.getCurrentBalance(walletId.toString())
+        BigDecimal available = ledgerEntryRepositoryPort.getAvailableBalance(walletId.toString())
                 .orElse(BigDecimal.ZERO);
-        if (current.compareTo(requestedAmount) < 0) {
-            throw new InsufficientFundsException(current, requestedAmount);
+        if (available.compareTo(requestedAmount) < 0) {
+            throw new InsufficientFundsException(available, requestedAmount);
         }
-        return current;
+        return available;
     }
 }

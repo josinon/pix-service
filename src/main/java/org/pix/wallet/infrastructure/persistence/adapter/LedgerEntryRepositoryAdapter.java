@@ -81,4 +81,48 @@ public class LedgerEntryRepositoryAdapter implements LedgerEntryRepositoryPort {
     public Optional<BigDecimal> getCurrentBalance(String walletId) {
         return repo.findCurrentBalanceByWalletId(UUID.fromString(walletId));
     }
+
+    @Override
+    public String reserve(String walletId, BigDecimal amount, String idempotencyKey) {
+        WalletEntity wallet = walletRepo.findById(UUID.fromString(walletId))
+            .orElseThrow(() -> new IllegalArgumentException("Wallet not found"));
+
+        // Validate available balance (real balance - reserved)
+        BigDecimal available = repo.findAvailableBalance(wallet.getId())
+            .orElse(BigDecimal.ZERO);
+        if (available.compareTo(amount) < 0) {
+            throw new InsufficientFundsException(available, amount);
+        }
+
+        LedgerEntryEntity e = new LedgerEntryEntity();
+        e.setId(UUID.randomUUID());
+        e.setWallet(wallet);
+        e.setOperationType(OperationType.RESERVED);
+        e.setAmount(amount);
+        e.setCreatedAt(Instant.now());
+        e.setIdempotencyKey(idempotencyKey);
+        repo.save(e);
+        return e.getId().toString();
+    }
+
+    @Override
+    public String unreserve(String walletId, BigDecimal amount, String idempotencyKey) {
+        WalletEntity wallet = walletRepo.findById(UUID.fromString(walletId))
+            .orElseThrow(() -> new IllegalArgumentException("Wallet not found"));
+
+        LedgerEntryEntity e = new LedgerEntryEntity();
+        e.setId(UUID.randomUUID());
+        e.setWallet(wallet);
+        e.setOperationType(OperationType.UNRESERVED);
+        e.setAmount(amount);
+        e.setCreatedAt(Instant.now());
+        e.setIdempotencyKey(idempotencyKey);
+        repo.save(e);
+        return e.getId().toString();
+    }
+
+    @Override
+    public Optional<BigDecimal> getAvailableBalance(String walletId) {
+        return repo.findAvailableBalance(UUID.fromString(walletId));
+    }
 }

@@ -48,19 +48,28 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_transfer_idempotency_key ON transfer(idempo
 CREATE TABLE IF NOT EXISTS ledger_entry (
   id               UUID PRIMARY KEY,
   wallet_id        UUID NOT NULL REFERENCES wallet(id),
-  operation_type   TEXT NOT NULL,  -- DEPOSIT, WITHDRAW
+  operation_type   TEXT NOT NULL,  -- DEPOSIT, WITHDRAW, RESERVED, UNRESERVED
   amount           NUMERIC(15,2) NOT NULL CHECK (amount <> 0),
   effective_at     TIMESTAMPTZ NOT NULL,
   created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
   idempotency_key  VARCHAR(64)
 );
 
+COMMENT ON COLUMN ledger_entry.operation_type IS 
+'Operation types: DEPOSIT (add funds), WITHDRAW (remove funds), PIX_OUT (legacy), PIX_IN (legacy), ADJUSTMENT (manual), RESERVED (block funds for PENDING transfer), UNRESERVED (release blocked funds)';
+
 -- Idempotência por carteira+idempotency_key
 CREATE UNIQUE INDEX IF NOT EXISTS uq_ledger_entry_idempotency_key ON ledger_entry(wallet_id, idempotency_key)
   WHERE idempotency_key IS NOT NULL;
 
+-- Composite index for current balance queries (wallet_id + operation_type for CASE optimization)
+CREATE INDEX IF NOT EXISTS ix_ledger_balance ON ledger_entry(wallet_id, operation_type, amount);
+
+-- Composite index for historical balance queries (wallet_id + created_at for time-based filtering)
+CREATE INDEX IF NOT EXISTS ix_ledger_historical ON ledger_entry(wallet_id, created_at, operation_type, amount);
+
+-- Index for time-based queries on effective_at
 CREATE INDEX IF NOT EXISTS ix_ledger_wallet_time ON ledger_entry(wallet_id, effective_at);
-CREATE INDEX IF NOT EXISTS ix_ledger_wallet ON ledger_entry(wallet_id);
 
 -- 5) Webhook Inbox table (idempotência de webhooks)
 CREATE TABLE IF NOT EXISTS webhook_inbox (

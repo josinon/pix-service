@@ -4,6 +4,7 @@ import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.pix.wallet.application.port.in.ProcessPixTransferUseCase;
+import org.pix.wallet.application.port.out.LedgerEntryRepositoryPort;
 import org.pix.wallet.application.port.out.PixKeyRepositoryPort;
 import org.pix.wallet.application.port.out.TransferRepositoryPort;
 import org.pix.wallet.application.port.out.WalletRepositoryPort;
@@ -28,8 +29,7 @@ public class PixTransferService implements ProcessPixTransferUseCase {
     private final WalletRepositoryPort walletRepositoryPort;
     private final PixKeyRepositoryPort pixKeyRepositoryPort;
     private final TransferRepositoryPort transferRepositoryPort;
-    // Removed direct usage after refactor; retained only via constructor before Lombok. Can eliminate to reduce coupling.
-    // private final LedgerEntryRepositoryPort ledgerEntryRepositoryPort; // (Removed)
+    private final LedgerEntryRepositoryPort ledgerEntryRepositoryPort;
     private final MetricsService metricsService;
     private final FundsValidator fundsValidator;
     
@@ -113,18 +113,31 @@ public class PixTransferService implements ProcessPixTransferUseCase {
                       kv("destinationWallet", destinationWallet.id()),
                       kv("differentWallets", true));
             
-            BigDecimal currentBalance = fundsValidator.ensureSufficientFunds(UUID.fromString(command.fromWalletId()), command.amount());
+            BigDecimal availableBalance = fundsValidator.ensureSufficientFunds(UUID.fromString(command.fromWalletId()), command.amount());
             
             log.debug("Balance validated", 
-                      kv("currentBalance", currentBalance),
+                      kv("availableBalance", availableBalance),
                       kv("transferAmount", command.amount()),
-                      kv("remainingBalance", currentBalance.subtract(command.amount())));
+                      kv("remainingAfterReserve", availableBalance.subtract(command.amount())));
             
             String endToEndId = generateEndToEndId();
             ObservabilityContext.setEndToEndId(endToEndId);
             
             log.debug("Generated End-to-End ID", 
                       kv("endToEndId", endToEndId));
+            
+            // RESERVE funds to prevent race conditions
+            String reserveIdempotencyKey = endToEndId + "-reserve";
+            ledgerEntryRepositoryPort.reserve(
+                command.fromWalletId(),
+                command.amount(),
+                reserveIdempotencyKey
+            );
+            
+            log.info("Funds reserved for transfer", 
+                     kv("endToEndId", endToEndId),
+                     kv("amount", command.amount()),
+                     kv("walletId", command.fromWalletId()));
             
             var transferCommand = new TransferRepositoryPort.TransferCommand(
                 endToEndId,
@@ -147,9 +160,11 @@ public class PixTransferService implements ProcessPixTransferUseCase {
                      kv("fromWallet", transfer.fromWalletId()),
                      kv("toWallet", transfer.toWalletId()),
                      kv("amount", transfer.amount()),
-                     kv("currency", transfer.currency()));
+                     kv("currency", transfer.currency()),
+                     kv("fundsReserved", true));
             
             // Debit/Credit occurs asynchronously on webhook confirmation (eventual consistency)
+            // Reserved funds will be unreserved when webhook CONFIRMED/REJECTED is received
             
             return new Result(transfer.endToEndId(), transfer.status());
             

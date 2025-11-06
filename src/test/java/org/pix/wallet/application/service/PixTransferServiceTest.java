@@ -62,9 +62,16 @@ public class PixTransferServiceTest {
         pixKey = "12345678901";
         idempotencyKey = "idp-" + UUID.randomUUID();
         amount = new BigDecimal("100.00");
-                // Manual construction due to new FundsValidator dependency (PixTransferService no longer needs ledger repo directly)
-                FundsValidator fundsValidator = new FundsValidator(ledgerEntryRepositoryPort);
-                pixTransferService = new PixTransferService(walletRepositoryPort, pixKeyRepositoryPort, transferRepositoryPort, metricsService, fundsValidator);
+        // Manual construction with all dependencies including ledgerEntryRepositoryPort
+        FundsValidator fundsValidator = new FundsValidator(ledgerEntryRepositoryPort);
+        pixTransferService = new PixTransferService(
+            walletRepositoryPort, 
+            pixKeyRepositoryPort, 
+            transferRepositoryPort, 
+            ledgerEntryRepositoryPort,  // Added
+            metricsService, 
+            fundsValidator
+        );
     }
 
 
@@ -100,7 +107,8 @@ public class PixTransferServiceTest {
         when(walletRepositoryPort.findById(fromWalletId)).thenReturn(Optional.of(fromWallet));
         when(pixKeyRepositoryPort.findByValueAndActive(pixKey)).thenReturn(Optional.of(pixKeyEntity));
         when(walletRepositoryPort.findById(toWalletId)).thenReturn(Optional.of(toWallet));
-        when(ledgerEntryRepositoryPort.getCurrentBalance(fromWalletId.toString())).thenReturn(Optional.of(new BigDecimal("500.00")));
+        when(ledgerEntryRepositoryPort.getAvailableBalance(fromWalletId.toString())).thenReturn(Optional.of(new BigDecimal("500.00")));
+        when(ledgerEntryRepositoryPort.reserve(anyString(), any(BigDecimal.class), anyString())).thenReturn(UUID.randomUUID().toString());
 
         TransferRepositoryPort.TransferResult transferResult = new TransferRepositoryPort.TransferResult(
                 UUID.randomUUID(),
@@ -128,7 +136,8 @@ public class PixTransferServiceTest {
         verify(walletRepositoryPort).findById(fromWalletId);
         verify(pixKeyRepositoryPort).findByValueAndActive(pixKey);
         verify(walletRepositoryPort).findById(toWalletId);
-        verify(ledgerEntryRepositoryPort).getCurrentBalance(fromWalletId.toString());
+        verify(ledgerEntryRepositoryPort).getAvailableBalance(fromWalletId.toString());
+        verify(ledgerEntryRepositoryPort).reserve(anyString(), any(BigDecimal.class), anyString());
         verify(transferRepositoryPort).save(any());
     }
 

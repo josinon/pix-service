@@ -17,24 +17,34 @@ public interface LedgerEntryJpaRepository extends JpaRepository<LedgerEntryEntit
                 CASE 
                     WHEN operation_type = 'DEPOSIT' THEN amount
                     WHEN operation_type = 'WITHDRAW' THEN -amount
+                    WHEN operation_type = 'RESERVED' THEN -amount
+                    WHEN operation_type = 'UNRESERVED' THEN amount
                     ELSE 0
                 END
-            ), 0) AS balance
+            ), 0) AS available_balance
         FROM ledger_entry
         WHERE wallet_id = :walletId;
     """, nativeQuery = true)
     Optional<BigDecimal> findCurrentBalanceByWalletId(UUID walletId);
 
 
+    /**
+     * Calculates historical balance at a specific point in time.
+     * Does NOT subtract reserved funds.
+     * 
+     * Formula: SUM(DEPOSIT) - SUM(WITHDRAW) up to asOf timestamp
+     */
     @Query(value = """
         SELECT 
             COALESCE(SUM(
                 CASE 
                     WHEN operation_type = 'DEPOSIT' THEN amount
                     WHEN operation_type = 'WITHDRAW' THEN -amount
+                    WHEN operation_type = 'RESERVED' THEN -amount
+                    WHEN operation_type = 'UNRESERVED' THEN amount
                     ELSE 0
                 END
-            ), 0) AS balance
+            ), 0) AS available_balance
         FROM ledger_entry
         WHERE wallet_id = :walletId and created_at <= :asOf;
     """, nativeQuery = true)

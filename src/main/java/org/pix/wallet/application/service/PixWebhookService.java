@@ -204,16 +204,17 @@ public class PixWebhookService implements ProcessPixWebhookUseCase {
                 yield "CONFIRMED";
             }
             case "REJECTED" -> {
-                log.info("Processing REJECTED event - transfer will not be applied", 
+                log.info("Processing REJECTED event - unreserving funds", 
                          kv("eventType", "REJECTED"),
                          kv("transferId", transfer.id()),
                          kv("reason", "transfer_rejected"));
                 
+                // Unreserve the funds that were blocked during transfer creation
+                unreserveRejectedTransfer(transfer);
+                
                 // Record transfer rejected metric
                 metricsService.recordTransferRejected();
                 
-                // If transfer was already applied (shouldn't happen), we'd need to reverse it
-                // For now, we just mark as rejected
                 yield "REJECTED";
             }
             case "PENDING" -> {
@@ -282,10 +283,58 @@ public class PixWebhookService implements ProcessPixWebhookUseCase {
                  kv("amount", transfer.amount()),
                  kv("operation", "CREDIT"));
         
+        // UNRESERVE funds (release the reservation made during transfer creation)
+        String unreserveIdempotencyKey = transfer.endToEndId() + "-unreserve";
+        if (!ledgerEntryRepositoryPort.existsByIdempotencyKey(unreserveIdempotencyKey)) {
+            ledgerEntryRepositoryPort.unreserve(
+                transfer.fromWalletId(),
+                transfer.amount(),
+                unreserveIdempotencyKey
+            );
+            
+            log.info("Funds unreserved after confirmation", 
+                     kv("walletId", transfer.fromWalletId()),
+                     kv("amount", transfer.amount()),
+                     kv("operation", "UNRESERVE"));
+        }
+        
         log.info("Transfer successfully applied to wallets", 
                  kv("transferId", transfer.id()),
                  kv("fromWallet", transfer.fromWalletId()),
                  kv("toWallet", transfer.toWalletId()),
                  kv("amount", transfer.amount()));
+    }
+    
+    /**
+     * Releases reserved funds when a transfer is rejected.
+     * Called when webhook REJECTED is received.
+     */
+    private void unreserveRejectedTransfer(TransferRepositoryPort.TransferResult transfer) {
+        String unreserveIdempotencyKey = transfer.endToEndId() + "-unreserve";
+        
+        // Check if already unreserved
+        if (ledgerEntryRepositoryPort.existsByIdempotencyKey(unreserveIdempotencyKey)) {
+            log.info("Transfer already unreserved - skipping (idempotent)", 
+                     kv("idempotencyKey", unreserveIdempotencyKey),
+                     kv("transferId", transfer.id()),
+                     kv("reason", "already_unreserved"));
+            return;
+        }
+        
+        log.debug("Unreserving funds for rejected transfer", 
+                  kv("walletId", transfer.fromWalletId()),
+                  kv("amount", transfer.amount()));
+        
+        ledgerEntryRepositoryPort.unreserve(
+            transfer.fromWalletId(),
+            transfer.amount(),
+            unreserveIdempotencyKey
+        );
+        
+        log.info("Funds unreserved after rejection", 
+                 kv("walletId", transfer.fromWalletId()),
+                 kv("amount", transfer.amount()),
+                 kv("operation", "UNRESERVE"),
+                 kv("reason", "transfer_rejected"));
     }
 }

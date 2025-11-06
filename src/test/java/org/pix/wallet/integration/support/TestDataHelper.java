@@ -86,6 +86,22 @@ public class TestDataHelper {
         return rest.postForEntity(url("/pix/webhook"), new HttpEntity<>(body, h), String.class);
     }
 
+    public void confirmPixTransfer(String endToEndId) {
+        String eventId = "evt-confirm-" + UUID.randomUUID();
+        ResponseEntity<String> resp = sendWebhook(endToEndId, eventId, "CONFIRMED");
+        if (resp.getStatusCode().value() != 200) {
+            throw new IllegalStateException("Webhook confirmation failed: status=" + resp.getStatusCode().value());
+        }
+    }
+
+    public void rejectPixTransfer(String endToEndId) {
+        String eventId = "evt-reject-" + UUID.randomUUID();
+        ResponseEntity<String> resp = sendWebhook(endToEndId, eventId, "REJECTED");
+        if (resp.getStatusCode().value() != 200) {
+            throw new IllegalStateException("Webhook rejection failed: status=" + resp.getStatusCode().value());
+        }
+    }
+
     public static String extract(String json, String field) {
         if (json == null) return null;
         // Robust JSON field capture (simple, not a full parser). Allows whitespace/newlines between tokens.

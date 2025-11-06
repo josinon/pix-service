@@ -46,7 +46,7 @@ class WithdrawServiceTest {
                 .build();
         idempotencyKey = "idp-" + UUID.randomUUID();
         // Default balance for happy-path tests
-    when(ledgerPort.getCurrentBalance(walletId.toString())).thenReturn(Optional.of(new BigDecimal("1000000.00")));
+    when(ledgerPort.getAvailableBalance(walletId.toString())).thenReturn(Optional.of(new BigDecimal("1000000.00")));
     }
 
     @Test
@@ -69,7 +69,7 @@ class WithdrawServiceTest {
 
         verify(walletPort).findById(walletId);
         verify(ledgerPort).existsByIdempotencyKey(idempotencyKey);
-        verify(ledgerPort).getCurrentBalance(walletId.toString());
+        verify(ledgerPort).getAvailableBalance(walletId.toString());
         verify(ledgerPort).withdraw(walletId.toString(), amount, idempotencyKey);
     }
 
@@ -206,7 +206,7 @@ class WithdrawServiceTest {
         verify(walletPort).findById(walletId);
         verify(ledgerPort).existsByIdempotencyKey(idempotencyKey);
         // Balance should not be retrieved due to idempotency short-circuit
-        verify(ledgerPort, never()).getCurrentBalance(walletId.toString());
+        verify(ledgerPort, never()).getAvailableBalance(walletId.toString());
         verify(ledgerPort, never()).withdraw(any(), any(), any());
     }
 
@@ -227,7 +227,7 @@ class WithdrawServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.walletId()).isEqualTo(walletId);
 
-        verify(ledgerPort).getCurrentBalance(walletId.toString());
+        verify(ledgerPort).getAvailableBalance(walletId.toString());
         verify(ledgerPort).withdraw(walletId.toString(), amount, idempotencyKey);
     }
 
@@ -248,7 +248,7 @@ class WithdrawServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.walletId()).isEqualTo(walletId);
 
-        verify(ledgerPort).getCurrentBalance(walletId.toString());
+        verify(ledgerPort).getAvailableBalance(walletId.toString());
         verify(ledgerPort).withdraw(walletId.toString(), amount, idempotencyKey);
     }
 
@@ -269,7 +269,7 @@ class WithdrawServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.walletId()).isEqualTo(walletId);
 
-        verify(ledgerPort).getCurrentBalance(walletId.toString());
+        verify(ledgerPort).getAvailableBalance(walletId.toString());
         verify(ledgerPort).withdraw(walletId.toString(), amount, idempotencyKey);
     }
 
@@ -299,7 +299,7 @@ class WithdrawServiceTest {
         withdrawService.execute(command);
 
         // Assert
-        verify(ledgerPort).getCurrentBalance(walletId.toString());
+        verify(ledgerPort).getAvailableBalance(walletId.toString());
         verify(ledgerPort).withdraw(
                 eq(walletId.toString()),
                 eq(amount),
@@ -316,14 +316,14 @@ class WithdrawServiceTest {
 
         when(walletPort.findById(walletId)).thenReturn(Optional.of(wallet));
         when(ledgerPort.existsByIdempotencyKey(idempotencyKey)).thenReturn(false);
-        when(ledgerPort.getCurrentBalance(walletId.toString())).thenReturn(Optional.of(new BigDecimal("100.00")));
+        when(ledgerPort.getAvailableBalance(walletId.toString())).thenReturn(Optional.of(new BigDecimal("100.00")));
 
         // Act & Assert
         assertThatThrownBy(() -> withdrawService.execute(command))
             .isInstanceOf(InsufficientFundsException.class)
             .hasMessageContaining("Insufficient balance");
 
-        verify(ledgerPort).getCurrentBalance(walletId.toString());
+        verify(ledgerPort).getAvailableBalance(walletId.toString());
         verify(ledgerPort, never()).withdraw(any(), any(), any());
     }
 
