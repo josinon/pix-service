@@ -461,12 +461,12 @@
       },
       "targets": [
         {
-          "expr": "increase(pix_webhooks_received_total{eventType=\"CONFIRMED\"}[1h])",
+          "expr": "increase(pix_webhooks_by_type_total{eventType=\"CONFIRMED\"}[1h])",
           "legendFormat": "Confirmados",
           "refId": "A"
         },
         {
-          "expr": "increase(pix_webhooks_received_total{eventType=\"REJECTED\"}[1h])",
+          "expr": "increase(pix_webhooks_by_type_total{eventType=\"REJECTED\"}[1h])",
           "legendFormat": "Rejeitados",
           "refId": "B"
         },
@@ -500,7 +500,7 @@
       },
       "targets": [
         {
-          "expr": "{app=\"pixwallet\"} | json | level=\"ERROR\"",
+          "expr": "{app=\"pixwallet\",level=\"ERROR\"}",
           "refId": "A"
         }
       ],
@@ -563,13 +563,13 @@
       "pluginVersion": "9.0.0",
       "targets": [
         {
-          "expr": "topk(10, sum by (operation) (rate(pix_transfer_creation_time_seconds_count[5m])))",
+          "expr": "topk(10, sum by (status) (rate(pix_transfer_creation_time_seconds_count[5m])))",
           "format": "table",
           "instant": true,
           "refId": "A"
         }
       ],
-      "title": "📈 Top 10 Operações por Volume",
+      "title": "📈 Volume por status (5m)",
       "transformations": [
         {
           "id": "organize",
@@ -579,7 +579,7 @@
             },
             "indexByName": {},
             "renameByName": {
-              "operation": "Operação",
+              "status": "Status",
               "Value": "Req/s"
             }
           }

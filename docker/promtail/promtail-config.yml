@@ -38,7 +38,7 @@ scrape_configs:
       # Stage 1: Parse JSON
       - json:
           expressions:
-            timestamp: timestamp
+            ts: '"@timestamp"'
             level: level
             logger: logger_name
             message: message
@@ -48,25 +48,21 @@ scrape_configs:
             walletId: walletId
             eventId: eventId
             operation: operation
-            trace_id: trace_id
-            span_id: span_id
+            traceId: traceId
+            spanId: spanId
             exception: exception
       
-      # Stage 2: Extrair labels relevantes
+      # Stage 2: Extrair labels relevantes (APENAS baixa cardinalidade!)
+      # correlationId e endToEndId NÃO devem ser labels pois têm alta cardinalidade
+      # Eles ficam disponíveis como campos extraídos para filtragem em queries
       - labels:
           level:
           operation:
-          correlationId:
-          endToEndId:
       
       # Stage 3: Timestamp
       - timestamp:
-          source: timestamp
+          source: ts
           format: RFC3339Nano
-      
-      # Stage 4: Output (structured message)
-      - output:
-          source: message
 
   # Coleta logs do Postgres (opcional, para debugging)
   - job_name: postgres

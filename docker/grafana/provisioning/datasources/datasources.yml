@@ -23,9 +23,11 @@ datasources:
         datasourceUid: 'loki'
         spanStartTimeShift: '-1h'
         spanEndTimeShift: '1h'
-        tags: ['correlationId', 'endToEndId']
+        tags: [{ key: 'correlationId', value: 'correlationId' }, { key: 'endToEndId', value: 'endToEndId' }]
         filterByTraceID: true
         filterBySpanID: false
+        customQuery: true
+        query: '{app="pixwallet"} | json | correlationId="${__span.tags.correlationId}" or endToEndId="${__span.tags.endToEndId}"'
       tracesToMetrics:
         datasourceUid: 'prometheus'
         spanStartTimeShift: '-1h'
@@ -46,10 +48,12 @@ datasources:
     jsonData:
       derivedFields:
         - datasourceUid: tempo
-          matcherRegex: "trace_id[\":]\\s*[\"']?([0-9a-fA-F]+)[\"']?"
+          matcherRegex: "\"traceId\"\\s*:\\s*\"([0-9a-fA-F]+)\""
           name: TraceID
           url: '$${__value.raw}'
+          urlDisplayLabel: 'View Trace'
         - datasourceUid: tempo
-          matcherRegex: "traceId[\":]\\s*[\"']?([0-9a-fA-F]+)[\"']?"
-          name: TraceID (alt)
+          matcherRegex: "\"trace_id\"\\s*:\\s*\"([0-9a-fA-F]+)\""
+          name: TraceID (snake_case)
           url: '$${__value.raw}'
+          urlDisplayLabel: 'View Trace'

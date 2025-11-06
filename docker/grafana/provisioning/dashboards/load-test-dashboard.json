@@ -11,7 +11,7 @@
       "type": "timeseries",
       "title": "Transfer Creation Rate (req/s)",
       "id": 1,
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+  "datasource": "Prometheus",
       "targets": [
         {
           "expr": "rate(pix_transfers_created_total[1m])",
@@ -34,7 +34,7 @@
       "type": "timeseries",
       "title": "Pending Transfers Gauge",
       "id": 2,
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+  "datasource": "Prometheus",
       "targets": [
         { "expr": "pix_transfers_pending{status=\"pending\"}", "legendFormat": "pending", "refId": "A" }
       ]
@@ -43,15 +43,15 @@
       "type": "timeseries",
       "title": "Transfer Creation Latency p95 / p99 (ms)",
       "id": 3,
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "datasource": "Prometheus",
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum(rate(pix_transfer_creation_time_bucket[5m])) by (le)) * 1000",
+          "expr": "histogram_quantile(0.95, sum(rate(pix_transfer_creation_time_seconds_bucket[5m])) by (le)) * 1000",
           "legendFormat": "p95",
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.99, sum(rate(pix_transfer_creation_time_bucket[5m])) by (le)) * 1000",
+          "expr": "histogram_quantile(0.99, sum(rate(pix_transfer_creation_time_seconds_bucket[5m])) by (le)) * 1000",
           "legendFormat": "p99",
           "refId": "B"
         }
@@ -61,15 +61,15 @@
       "type": "timeseries",
       "title": "End-to-End Transfer Confirmation Time p95/p99 (ms)",
       "id": 4,
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "datasource": "Prometheus",
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum(rate(pix_transfer_end_to_end_time_bucket[5m])) by (le)) * 1000",
+          "expr": "histogram_quantile(0.95, sum(rate(pix_transfer_end_to_end_time_seconds_bucket[5m])) by (le)) * 1000",
           "legendFormat": "e2e p95",
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.99, sum(rate(pix_transfer_end_to_end_time_bucket[5m])) by (le)) * 1000",
+          "expr": "histogram_quantile(0.99, sum(rate(pix_transfer_end_to_end_time_seconds_bucket[5m])) by (le)) * 1000",
           "legendFormat": "e2e p99",
           "refId": "B"
         }
@@ -79,15 +79,15 @@
       "type": "timeseries",
       "title": "Webhook Processing Latency p95/p99 (ms)",
       "id": 5,
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "datasource": "Prometheus",
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum(rate(pix_webhook_processing_time_bucket[5m])) by (le)) * 1000",
+          "expr": "histogram_quantile(0.95, sum(rate(pix_webhook_processing_time_seconds_bucket[5m])) by (le)) * 1000",
           "legendFormat": "webhook p95",
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.99, sum(rate(pix_webhook_processing_time_bucket[5m])) by (le)) * 1000",
+          "expr": "histogram_quantile(0.99, sum(rate(pix_webhook_processing_time_seconds_bucket[5m])) by (le)) * 1000",
           "legendFormat": "webhook p99",
           "refId": "B"
         }
@@ -97,7 +97,7 @@
       "type": "timeseries",
       "title": "Success Ratio (Confirmed/Created)",
       "id": 6,
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "datasource": "Prometheus",
       "targets": [
         {
           "expr": "(rate(pix_transfers_confirmed_total[5m]) / rate(pix_transfers_created_total[5m]))",
@@ -111,7 +111,7 @@
       "type": "timeseries",
       "title": "Wallets Active / Created",
       "id": 7,
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+  "datasource": "Prometheus",
       "targets": [
         { "expr": "pix_wallets_active{status=\"active\"}", "legendFormat": "active", "refId": "A" },
         { "expr": "rate(pix_wallets_created_total[5m])", "legendFormat": "created rate", "refId": "B" }
@@ -121,7 +121,7 @@
       "type": "timeseries",
       "title": "JVM Heap Usage (%)",
       "id": 8,
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+  "datasource": "Prometheus",
       "targets": [
         {
           "expr": "(sum(jvm_memory_used_bytes{area=\"heap\"}) / sum(jvm_memory_max_bytes{area=\"heap\"}))",
@@ -135,7 +135,7 @@
       "type": "timeseries",
       "title": "Deposits vs Withdrawals Rate",
       "id": 9,
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+  "datasource": "Prometheus",
       "targets": [
         { "expr": "rate(pix_deposits_completed_total[5m])", "legendFormat": "deposits", "refId": "A" },
         { "expr": "rate(pix_withdrawals_completed_total[5m])", "legendFormat": "withdrawals", "refId": "B" }
@@ -146,7 +146,7 @@
       "type": "timeseries",
       "title": "HTTP 5xx Error Rate (%)",
       "id": 10,
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+  "datasource": "Prometheus",
       "targets": [
         {
           "expr": "(sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[5m])) / sum(rate(http_server_requests_seconds_count[5m])))",
@@ -226,11 +226,11 @@
       "type": "logs",
       "title": "Webhook Error Logs (Loki)",
       "id": 16,
-      "datasource": { "type": "loki", "uid": "Loki" },
+      "datasource": "Loki",
       "options": { "showTime": true, "wrapLogMessage": false },
       "targets": [
         {
-          "expr": "{container_name=\"pixwallet-app\"} |= \"/pix/webhook\" |= \"ERROR\"",
+          "expr": "{app=\"pixwallet\",level=\"ERROR\",operation=\"PIX_WEBHOOK_PROCESS\"}",
           "refId": "A"
         }
       ]

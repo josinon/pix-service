@@ -8,9 +8,11 @@ import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -20,6 +22,7 @@ import java.util.stream.Collectors;
  * <ul>
  *   <li>Cria um span com o nome especificado na annotation</li>
  *   <li>Adiciona metadados (classe, método, parâmetros)</li>
+ *   <li>Propaga contexto MDC (correlationId, endToEndId, etc) como span attributes</li>
  *   <li>Captura exceções e marca como erro no span</li>
  *   <li>Mede a duração da execução automaticamente</li>
  * </ul>
@@ -29,6 +32,7 @@ import java.util.stream.Collectors;
  *   <li>Spans são exportados via OTLP para o Collector (porta 4318)</li>
  *   <li>Armazenados no Tempo para visualização no Grafana</li>
  *   <li>trace_id e span_id propagados automaticamente</li>
+ *   <li>correlationId e endToEndId propagados como span attributes para correlação</li>
  * </ul>
  * 
  * <p><b>Exemplo de uso:</b></p>
@@ -40,7 +44,7 @@ import java.util.stream.Collectors;
  *     @Traced(operation = "pix.transfer.create", description = "Cria transferência PIX")
  *     public Transfer createTransfer(TransferCommand command) {
  *         // O aspecto criará um span com nome "pix.transfer.create"
- *         // e adicionará tags: class, method, parameters
+ *         // e adicionará tags: class, method, parameters, correlationId, endToEndId
  *         return transfer;
  *     }
  * }
@@ -92,6 +96,36 @@ public class TracingAspect {
         
         if (!parameterTypes.isEmpty()) {
             observation.lowCardinalityKeyValue("parameter_types", parameterTypes);
+        }
+        
+        // CRITICAL: Propagar contexto MDC como span attributes para correlação
+        // Isso permite correlacionar logs → traces → métricas no Grafana
+        Map<String, String> mdcContext = MDC.getCopyOfContextMap();
+        if (mdcContext != null) {
+            // Adicionar correlationId se presente (chave para correlação end-to-end)
+            if (mdcContext.containsKey("correlationId")) {
+                observation.lowCardinalityKeyValue("correlationId", mdcContext.get("correlationId"));
+            }
+            
+            // Adicionar endToEndId se presente (ID da transação PIX)
+            if (mdcContext.containsKey("endToEndId")) {
+                observation.lowCardinalityKeyValue("endToEndId", mdcContext.get("endToEndId"));
+            }
+            
+            // Adicionar transferId se presente
+            if (mdcContext.containsKey("transferId")) {
+                observation.lowCardinalityKeyValue("transferId", mdcContext.get("transferId"));
+            }
+            
+            // Adicionar walletId se presente
+            if (mdcContext.containsKey("walletId")) {
+                observation.lowCardinalityKeyValue("walletId", mdcContext.get("walletId"));
+            }
+            
+            // Adicionar eventId se presente
+            if (mdcContext.containsKey("eventId")) {
+                observation.lowCardinalityKeyValue("eventId", mdcContext.get("eventId"));
+            }
         }
         
         logger.debug("Starting span: {} (class={}, method={})", 
