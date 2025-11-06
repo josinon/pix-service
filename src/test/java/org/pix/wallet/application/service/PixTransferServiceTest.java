@@ -110,7 +110,8 @@ public class PixTransferServiceTest {
                 amount,
                 "BRL",
                 "PENDING",
-                0
+                0,
+                java.time.Instant.now()
         );
 
         when(transferRepositoryPort.save(any())).thenReturn(transferResult);
@@ -145,7 +146,8 @@ public class PixTransferServiceTest {
                 amount,
                 "BRL",
                 "CONFIRMED",
-                1
+                1,
+                java.time.Instant.now()
         );
 
         when(transferRepositoryPort.existsByIdempotencyKey(idempotencyKey)).thenReturn(true);

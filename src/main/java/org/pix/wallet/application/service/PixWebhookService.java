@@ -189,10 +189,17 @@ public class PixWebhookService implements ProcessPixWebhookUseCase {
                          kv("transferId", transfer.id()));
                 applyTransferToWallets(transfer);
                 
-                // Record transfer confirmed metric
-                // Note: Duration calculation would require createdAt timestamp
-                // For now, we just record confirmation
-                metricsService.recordTransferConfirmed(java.time.Duration.ZERO);
+                // Calculate end-to-end duration (from transfer creation to confirmation)
+                java.time.Duration endToEndDuration = java.time.Duration.between(
+                    transfer.createdAt(), 
+                    java.time.Instant.now()
+                );
+                
+                metricsService.recordTransferConfirmed(endToEndDuration);
+                
+                log.debug("Transfer end-to-end time recorded",
+                         kv("transferId", transfer.id()),
+                         kv("endToEndDurationMs", endToEndDuration.toMillis()));
                 
                 yield "CONFIRMED";
             }

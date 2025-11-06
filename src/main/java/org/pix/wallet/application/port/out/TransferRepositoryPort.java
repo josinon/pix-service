@@ -48,6 +48,7 @@ public interface TransferRepositoryPort {
         java.math.BigDecimal amount,
         String currency,
         String status,
-        int version
+        int version,
+        java.time.Instant createdAt
     ) {}
 }

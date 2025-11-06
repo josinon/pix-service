@@ -78,7 +78,8 @@ public class TransferRepositoryAdapter implements TransferRepositoryPort {
             amount,
             entity.getCurrency(),
             entity.getStatus().name(),
-            entity.getVersion()
+            entity.getVersion(),
+            entity.getInitiatedAt()
         );
     }
 }
