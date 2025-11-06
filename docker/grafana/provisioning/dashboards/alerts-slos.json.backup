@@ -15,16 +15,39 @@
           "color": {
             "mode": "thresholds"
           },
-          "mappings": [],
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "green",
+                  "index": 0,
+                  "text": "OK - Nenhum alerta"
+                }
+              },
+              "type": "value"
+            },
+            {
+              "options": {
+                "from": 1,
+                "result": {
+                  "color": "red",
+                  "index": 1,
+                  "text": "ALERTAS ATIVOS"
+                },
+                "to": 1000
+              },
+              "type": "range"
+            }
+          ],
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "text",
+                "color": "green",
                 "value": null
               },
               {
-                "color": "green",
+                "color": "red",
                 "value": 1
               }
             ]
@@ -34,14 +57,14 @@
       },
       "gridPos": {
         "h": 6,
-        "w": 4,
+        "w": 8,
         "x": 0,
         "y": 0
       },
       "id": 1,
       "options": {
-        "colorMode": "value",
-        "graphMode": "area",
+        "colorMode": "background",
+        "graphMode": "none",
         "justifyMode": "center",
         "orientation": "auto",
         "reduceOptions": {
@@ -49,15 +72,15 @@
           "calcs": ["lastNotNull"],
           "fields": ""
         },
-        "textMode": "value"
+        "textMode": "value_and_name"
       },
       "targets": [
         {
-          "expr": "sum(pix_transfers_created_total) or vector(0)",
+          "expr": "count(ALERTS{alertstate=\"firing\"})",
           "refId": "A"
         }
       ],
-      "title": "📊 Total Criadas",
+      "title": "🚨 Alertas Ativos",
       "type": "stat"
     },
     {
@@ -72,11 +95,11 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "text",
+                "color": "green",
                 "value": null
               },
               {
-                "color": "green",
+                "color": "red",
                 "value": 1
               }
             ]
@@ -86,8 +109,8 @@
       },
       "gridPos": {
         "h": 6,
-        "w": 4,
-        "x": 4,
+        "w": 8,
+        "x": 8,
         "y": 0
       },
       "id": 2,
@@ -101,15 +124,15 @@
           "calcs": ["lastNotNull"],
           "fields": ""
         },
-        "textMode": "value"
+        "textMode": "value_and_name"
       },
       "targets": [
         {
-          "expr": "sum(pix_transfers_confirmed_total) or vector(0)",
+          "expr": "count(ALERTS{alertstate=\"firing\", severity=\"critical\"})",
           "refId": "A"
         }
       ],
-      "title": "✅ Total Confirmadas",
+      "title": "🔴 Críticos",
       "type": "stat"
     },
     {
@@ -130,10 +153,6 @@
               {
                 "color": "yellow",
                 "value": 1
-              },
-              {
-                "color": "red",
-                "value": 10
               }
             ]
           },
@@ -142,8 +161,8 @@
       },
       "gridPos": {
         "h": 6,
-        "w": 4,
-        "x": 8,
+        "w": 8,
+        "x": 16,
         "y": 0
       },
       "id": 3,
@@ -157,15 +176,15 @@
           "calcs": ["lastNotNull"],
           "fields": ""
         },
-        "textMode": "value"
+        "textMode": "value_and_name"
       },
       "targets": [
         {
-          "expr": "sum(pix_transfers_rejected_total) or vector(0)",
+          "expr": "count(ALERTS{alertstate=\"firing\", severity=\"warning\"})",
           "refId": "A"
         }
       ],
-      "title": "❌ Total Rejeitadas",
+      "title": "🟡 Warnings",
       "type": "stat"
     },
     {
@@ -175,56 +194,156 @@
           "color": {
             "mode": "thresholds"
           },
+          "custom": {
+            "align": "left",
+            "displayMode": "color-background"
+          },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 95
-              },
-              {
                 "color": "green",
-                "value": 99
+                "value": null
               }
             ]
-          },
-          "unit": "percent",
-          "max": 100,
-          "min": 0
-        }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "severity"
+            },
+            "properties": [
+              {
+                "id": "custom.displayMode",
+                "value": "color-background"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "critical": {
+                        "color": "red",
+                        "index": 0
+                      },
+                      "warning": {
+                        "color": "yellow",
+                        "index": 1
+                      }
+                    },
+                    "type": "value"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
-        "h": 6,
-        "w": 4,
-        "x": 12,
-        "y": 0
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 6
       },
       "id": 4,
       "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "center",
+        "footer": {
+          "fields": "",
+          "reducer": ["sum"],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "expr": "ALERTS{alertstate=\"firing\"}",
+          "format": "table",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "title": "📋 Lista de Alertas Ativos",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "Value": true,
+              "__name__": true,
+              "alertstate": true,
+              "job": true,
+              "instance": true
+            },
+            "indexByName": {},
+            "renameByName": {
+              "alertname": "Alerta",
+              "severity": "Severidade",
+              "component": "Componente"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "max": 1,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.99
+              },
+              {
+                "color": "green",
+                "value": 0.999
+              }
+            ]
+          },
+          "unit": "percentunit"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 16
+      },
+      "id": 5,
+      "options": {
         "orientation": "auto",
         "reduceOptions": {
           "values": false,
           "calcs": ["lastNotNull"],
           "fields": ""
         },
-        "textMode": "value"
+        "showThresholdLabels": true,
+        "showThresholdMarkers": true
       },
       "targets": [
         {
-          "expr": "(sum(pix_transfers_confirmed_total) / sum(pix_transfers_created_total)) * 100 or vector(0)",
+          "expr": "slo:pix_transfer_creation:success_rate:5m",
           "refId": "A"
         }
       ],
-      "title": "📈 Taxa de Sucesso",
-      "type": "stat"
+      "title": "📊 SLO: Taxa de Sucesso (Transferências)",
+      "type": "gauge"
     },
     {
       "datasource": "Prometheus",
@@ -243,44 +362,42 @@
               },
               {
                 "color": "yellow",
-                "value": 50
+                "value": 0.3
               },
               {
                 "color": "red",
-                "value": 100
+                "value": 0.5
               }
             ]
           },
-          "unit": "short"
+          "unit": "s"
         }
       },
       "gridPos": {
-        "h": 6,
-        "w": 4,
-        "x": 16,
-        "y": 0
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 16
       },
-      "id": 5,
+      "id": 6,
       "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "center",
         "orientation": "auto",
         "reduceOptions": {
           "values": false,
           "calcs": ["lastNotNull"],
           "fields": ""
         },
-        "textMode": "value"
+        "showThresholdLabels": true,
+        "showThresholdMarkers": true
       },
       "targets": [
         {
-          "expr": "sum(pix_transfers_pending) or vector(0)",
+          "expr": "slo:pix_transfer_creation:latency_p95:5m",
           "refId": "A"
         }
       ],
-      "title": "⏳ Pendentes",
-      "type": "stat"
+      "title": "⚡ SLO: Latência P95 (Criação)",
+      "type": "gauge"
     },
     {
       "datasource": "Prometheus",
@@ -289,20 +406,7 @@
           "color": {
             "mode": "thresholds"
           },
-          "mappings": [
-            {
-              "options": {
-                "from": 0,
-                "result": {
-                  "color": "text",
-                  "index": 0,
-                  "text": "Sem dados"
-                },
-                "to": 0.000001
-              },
-              "type": "range"
-            }
-          ],
+          "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -320,38 +424,34 @@
               }
             ]
           },
-          "unit": "s",
-          "noValue": "Sem dados"
+          "unit": "s"
         }
       },
       "gridPos": {
-        "h": 6,
-        "w": 4,
-        "x": 20,
-        "y": 0
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 16
       },
-      "id": 6,
+      "id": 7,
       "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "center",
         "orientation": "auto",
         "reduceOptions": {
           "values": false,
           "calcs": ["lastNotNull"],
           "fields": ""
         },
-        "textMode": "value"
+        "showThresholdLabels": true,
+        "showThresholdMarkers": true
       },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum(rate(pix_transfer_creation_time_seconds_bucket[5m])) by (le)) or vector(0)",
-          "instant": true,
+          "expr": "slo:pix_webhook:latency_p995:5m",
           "refId": "A"
         }
       ],
-      "title": "⚡ Latência P95",
-      "type": "stat"
+      "title": "🔄 SLO: Latência P99.5 (Webhook)",
+      "type": "gauge"
     },
     {
       "datasource": "Prometheus",
@@ -365,28 +465,13 @@
             "axisPlacement": "auto",
             "barAlignment": 0,
             "drawStyle": "line",
-            "fillOpacity": 10,
-            "gradientMode": "none",
-            "hideFrom": {
-              "tooltip": false,
-              "viz": false,
-              "legend": false
-            },
+            "fillOpacity": 20,
+            "gradientMode": "opacity",
             "lineInterpolation": "smooth",
             "lineWidth": 2,
             "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
             "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
+            "spanNulls": false
           },
           "mappings": [],
           "thresholds": {
@@ -395,49 +480,46 @@
               {
                 "color": "green",
                 "value": null
+              },
+              {
+                "color": "red",
+                "value": 0.999
               }
             ]
           },
-          "unit": "reqps"
+          "unit": "percentunit"
         }
       },
       "gridPos": {
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 6
+        "y": 24
       },
-      "id": 7,
+      "id": 8,
       "options": {
         "legend": {
-          "calcs": ["mean", "max", "last"],
+          "calcs": ["mean", "min"],
           "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
+          "placement": "bottom"
         },
         "tooltip": {
-          "mode": "multi",
-          "sort": "none"
+          "mode": "multi"
         }
       },
       "targets": [
         {
-          "expr": "rate(pix_transfers_created_total[5m])",
-          "legendFormat": "Criadas",
+          "expr": "slo:pix_transfer_creation:success_rate:5m",
+          "legendFormat": "Taxa de Sucesso (5min)",
           "refId": "A"
         },
         {
-          "expr": "rate(pix_transfers_confirmed_total[5m])",
-          "legendFormat": "Confirmadas",
+          "expr": "slo:pix_transfer_creation:success_rate:1h",
+          "legendFormat": "Taxa de Sucesso (1h)",
           "refId": "B"
-        },
-        {
-          "expr": "rate(pix_transfers_rejected_total[5m])",
-          "legendFormat": "Rejeitadas",
-          "refId": "C"
         }
       ],
-      "title": "📊 Taxa de Transferências (últimos 5 min)",
+      "title": "📈 SLO Histórico: Taxa de Sucesso",
       "type": "timeseries"
     },
     {
@@ -452,28 +534,13 @@
             "axisPlacement": "auto",
             "barAlignment": 0,
             "drawStyle": "line",
-            "fillOpacity": 10,
-            "gradientMode": "none",
-            "hideFrom": {
-              "tooltip": false,
-              "viz": false,
-              "legend": false
-            },
+            "fillOpacity": 20,
+            "gradientMode": "opacity",
             "lineInterpolation": "smooth",
             "lineWidth": 2,
             "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
             "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "line"
-            }
+            "spanNulls": false
           },
           "mappings": [],
           "thresholds": {
@@ -500,79 +567,108 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 6
-      },
-      "id": 8,
-      "options": {
-        "legend": {
-          "calcs": ["mean", "max", "last"],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "expr": "histogram_quantile(0.50, sum(rate(pix_transfer_creation_time_seconds_bucket[5m])) by (le))",
-          "legendFormat": "P50 Criação",
-          "refId": "A"
-        },
-        {
-          "expr": "histogram_quantile(0.95, sum(rate(pix_transfer_creation_time_seconds_bucket[5m])) by (le))",
-          "legendFormat": "P95 Criação",
-          "refId": "B"
-        },
-        {
-          "expr": "histogram_quantile(0.95, sum(rate(pix_webhook_processing_time_seconds_bucket[5m])) by (le))",
-          "legendFormat": "P95 Webhook",
-          "refId": "C"
-        },
-        {
-          "expr": "histogram_quantile(0.95, sum(rate(pix_transfer_end_to_end_time_seconds_bucket[5m])) by (le))",
-          "legendFormat": "P95 End-to-End",
-          "refId": "D"
-        }
-      ],
-      "title": "⚡ Latências (P50 e P95)",
-      "type": "timeseries"
-    },
-    {
-      "datasource": "Loki",
-      "gridPos": {
-        "h": 10,
-        "w": 24,
-        "x": 0,
-        "y": 14
+        "y": 24
       },
       "id": 9,
       "options": {
-        "showTime": true,
-        "showLabels": true,
-        "showCommonLabels": false,
-        "wrapLogMessage": true,
-        "prettifyLogMessage": false,
-        "enableLogDetails": true,
-        "dedupStrategy": "none",
-        "sortOrder": "Descending"
+        "legend": {
+          "calcs": ["mean", "max"],
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
       },
       "targets": [
         {
-          "expr": "{app=\"pixwallet\",level=\"ERROR\"}",
+          "expr": "slo:pix_transfer_creation:latency_p95:5m",
+          "legendFormat": "P95 Criação",
+          "refId": "A"
+        },
+        {
+          "expr": "slo:pix_transfer_creation:latency_p99:5m",
+          "legendFormat": "P99 Criação",
+          "refId": "B"
+        },
+        {
+          "expr": "slo:pix_webhook:latency_p995:5m",
+          "legendFormat": "P99.5 Webhook",
+          "refId": "C"
+        }
+      ],
+      "title": "⚡ SLO Histórico: Latências",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 32
+      },
+      "id": 10,
+      "options": {
+        "legend": {
+          "calcs": ["sum"],
+          "displayMode": "table",
+          "placement": "right"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "expr": "changes(ALERTS{alertstate=\"firing\"}[1h])",
+          "legendFormat": "{{alertname}} ({{severity}})",
           "refId": "A"
         }
       ],
-      "title": "🚨 Últimos Erros (Logs)",
-      "type": "logs"
+      "title": "📊 Histórico de Alertas (última hora)",
+      "type": "timeseries"
     }
   ],
   "refresh": "10s",
   "schemaVersion": 36,
   "style": "dark",
-  "tags": ["pix", "transfers", "overview"],
+  "tags": ["alerts", "slo", "monitoring"],
   "templating": {
     "list": []
   },
@@ -582,7 +678,7 @@
   },
   "timepicker": {},
   "timezone": "",
-  "title": "PIX Transfers Overview",
-  "uid": "pix-transfers",
+  "title": "Alerts & SLOs Dashboard",
+  "uid": "alerts-slos",
   "version": 1
 }
