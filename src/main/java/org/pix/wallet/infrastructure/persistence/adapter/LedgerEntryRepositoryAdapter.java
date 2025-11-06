@@ -51,10 +51,6 @@ public class LedgerEntryRepositoryAdapter implements LedgerEntryRepositoryPort {
         WalletEntity wallet = walletRepo.findById(UUID.fromString(walletId))
             .orElseThrow(() -> new IllegalArgumentException("Wallet not found"));
 
-        // Defensive balance check at repository level to avoid negative balance in case
-        // service-level validation was bypassed or concurrent race occurred between
-        // validation and persistence. This duplicates the domain rule intentionally
-        // to enforce invariant near the write boundary.
         BigDecimal current = repo.findAvailableBalance(wallet.getId())
             .orElse(BigDecimal.ZERO);
         if (current.compareTo(amount) < 0) {
@@ -87,7 +83,6 @@ public class LedgerEntryRepositoryAdapter implements LedgerEntryRepositoryPort {
         WalletEntity wallet = walletRepo.findById(UUID.fromString(walletId))
             .orElseThrow(() -> new IllegalArgumentException("Wallet not found"));
 
-        // Validate available balance (real balance - reserved)
         BigDecimal available = repo.findAvailableBalance(wallet.getId())
             .orElse(BigDecimal.ZERO);
         if (available.compareTo(amount) < 0) {

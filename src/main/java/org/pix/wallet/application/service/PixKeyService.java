@@ -47,7 +47,6 @@ public class PixKeyService implements CreatePixKeyUseCase {
         PixKey key = new PixKey(UUID.randomUUID(), wallet.id(), type, value, PixKeyStatus.ACTIVE, OffsetDateTime.now());
         PixKey saved = pixKeyPort.save(key);
         
-        // Record metric
         metricsService.recordPixKeyRegistered(type.name());
         
         return new CreatePixKeyResult(saved.id(), saved.type().name(), saved.value(), saved.status().name());

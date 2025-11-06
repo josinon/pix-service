@@ -34,7 +34,6 @@ public class WalletService implements CreateWalletUseCase {
         
         Wallet savedWallet = walletRepository.save(wallet);
         
-        // Record metric
         metricsService.recordWalletCreated();
         
         return savedWallet;

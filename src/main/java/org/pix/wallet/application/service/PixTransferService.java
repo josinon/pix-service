@@ -126,7 +126,6 @@ public class PixTransferService implements ProcessPixTransferUseCase {
             log.debug("Generated End-to-End ID", 
                       kv("endToEndId", endToEndId));
             
-            // RESERVE funds to prevent race conditions
             String reserveIdempotencyKey = endToEndId + "-reserve";
             ledgerEntryRepositoryPort.reserve(
                 command.fromWalletId(),
@@ -163,14 +162,9 @@ public class PixTransferService implements ProcessPixTransferUseCase {
                      kv("currency", transfer.currency()),
                      kv("fundsReserved", true));
             
-            // Debit/Credit occurs asynchronously on webhook confirmation (eventual consistency)
-            // Reserved funds will be unreserved when webhook CONFIRMED/REJECTED is received
-            
             return new Result(transfer.endToEndId(), transfer.status());
             
         } catch (IllegalArgumentException | IllegalStateException e) {
-            // Business validation errors - already logged above
-            // Record error metric
             String errorType = determineErrorType(e);
             metricsService.recordTransferCreationError(metricsTimer, errorType);
             throw e;
@@ -182,7 +176,6 @@ public class PixTransferService implements ProcessPixTransferUseCase {
             metricsService.recordTransferCreationError(metricsTimer, "unexpected_error");
             throw new RuntimeException("Failed to create PIX transfer", e);
         } finally {
-            // Clear observability context
             ObservabilityContext.clear();
         }
     }

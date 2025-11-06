@@ -26,18 +26,15 @@ public class DepositService implements DepositUseCase {
    @Override
     @Transactional
     public Result execute(Command command) {
-        // Validations using centralized validator
         validator.validateAmount(command.amount());
         validator.validateIdempotencyKey(command.idempotencyKey());
         
         Wallet wallet = validator.validateAndGetActiveWallet(command.walletId());
 
-        // Check idempotency
         if (ledgerPort.existsByIdempotencyKey(command.idempotencyKey())) {
             return new Result(wallet.id(), command.idempotencyKey());
         }
 
-        // Execute deposit
         ledgerPort.deposit(wallet.id().toString(), command.amount(), command.idempotencyKey());
         
         metricsService.recordDepositCompleted();
