@@ -328,7 +328,7 @@ public class PixTransferServiceTest {
         when(walletRepositoryPort.findById(fromWalletId)).thenReturn(Optional.of(fromWallet));
         when(pixKeyRepositoryPort.findByValueAndActive(pixKey)).thenReturn(Optional.of(pixKeyEntity));
         when(walletRepositoryPort.findById(toWalletId)).thenReturn(Optional.of(toWallet));
-        when(ledgerEntryRepositoryPort.getCurrentBalance(fromWalletId.toString())).thenReturn(Optional.of(new BigDecimal("50.00")));
+        when(ledgerEntryRepositoryPort.getAvailableBalance(fromWalletId.toString())).thenReturn(Optional.of(new BigDecimal("50.00")));
 
         // Act & Assert
         assertThatThrownBy(() -> pixTransferService.execute(command))
