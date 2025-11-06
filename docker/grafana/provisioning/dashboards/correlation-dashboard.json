@@ -34,33 +34,21 @@
           "color": {
             "mode": "thresholds"
           },
-          "mappings": [
-            {
-              "options": {
-                "0": {
-                  "color": "red",
-                  "index": 2,
-                  "text": "Não Encontrada"
-                },
-                "1": {
-                  "color": "green",
-                  "index": 0,
-                  "text": "Confirmada"
-                }
-              },
-              "type": "value"
-            }
-          ],
+          "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "text",
                 "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
               }
             ]
           },
-          "unit": "none"
+          "unit": "short"
         }
       },
       "gridPos": {
@@ -71,8 +59,8 @@
       },
       "id": 2,
       "options": {
-        "colorMode": "background",
-        "graphMode": "none",
+        "colorMode": "value",
+        "graphMode": "area",
         "justifyMode": "center",
         "orientation": "auto",
         "reduceOptions": {
@@ -84,11 +72,11 @@
       },
       "targets": [
         {
-          "expr": "pix_transfers_confirmed_total{endToEndId=~\"$endToEndId\"} > 0 or vector(0)",
+          "expr": "sum(pix_transfers_confirmed_total) or vector(0)",
           "refId": "A"
         }
       ],
-      "title": "📊 Status da Transferência",
+      "title": "📊 Total de Transferências",
       "type": "stat"
     },
     {
